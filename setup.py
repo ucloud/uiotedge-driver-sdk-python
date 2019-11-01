@@ -13,5 +13,6 @@ setup(
     license='Apache 2 License',
     install_requires=[
         'setuptools>=16.0',
-    ]
+    ],
+    description="UIoT Edge Driver Access SDK"
 )
