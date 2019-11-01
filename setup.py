@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 import sys
 
 if not (sys.version_info[0] == 3):
@@ -12,7 +12,9 @@ setup(
     platforms="any",
     license='Apache 2 License',
     install_requires=[
-        'setuptools>=16.0',
+        "setuptools>=16.0",
+        "nats-python>=0.5.0",
+        "websockets>=8.0.2"
     ],
     description="UIoT Edge Driver Access SDK"
 )

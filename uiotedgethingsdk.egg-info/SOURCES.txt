@@ -1,0 +1,9 @@
+README.md
+setup.py
+uiotedgethingsdk/__init__.py
+uiotedgethingsdk/thing_client.py
+uiotedgethingsdk.egg-info/PKG-INFO
+uiotedgethingsdk.egg-info/SOURCES.txt
+uiotedgethingsdk.egg-info/dependency_links.txt
+uiotedgethingsdk.egg-info/requires.txt
+uiotedgethingsdk.egg-info/top_level.txt
