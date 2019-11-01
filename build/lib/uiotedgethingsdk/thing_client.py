@@ -12,10 +12,14 @@ _natsclient = NATSClient(url=_nats_url, socket_timeout=5)
 _natsclient.connect()
 
 
+def _generate_request_id():
+    return ''.join(random.sample(string.ascii_letters + string.digits, 16))
+
+
 class ThingClient(object):
-    def __init__(self, deviceSN, productKey, callback):
-        self.deviceSN = deviceSN
-        self.productKey = productKey
+    def __init__(self, device_sn, product_sn, callback):
+        self.device_sn = device_sn
+        self.product_sn = product_sn
         self.callback = callback
 
     def online(self):
@@ -23,13 +27,31 @@ class ThingClient(object):
         pass
 
     def offline(self):
-        # TODO send offline
-        pass
+        _thingclients.pop(self.device_sn)
+        offline_message = {
+            'RequestID': _generate_request_id(),
+            'Params': {
+                'ProductSN': self.product_sn,
+                'DeviceSN': self.device_sn
+            }
+        }
+        topic = '/$system/%s/%d/subdev/logout' % (
+            self.product_sn, self.device_sn)
+        self.publish(topic=topic, payload=offline_message)
 
     def registerAndOnline(self):
-        # TODO do register and online
-        _thingclients[self.deviceSN] = self
-        pass
+        print("on registerAndOnline")
+        _thingclients[self.device_sn] = self
+        online_message = {
+            'RequestID': _generate_request_id(),
+            'Params': {
+                'ProductSN': self.product_sn,
+                'DeviceSN': self.device_sn
+            }
+        }
+        topic = '/$system/%s/%s/subdev/login' % (
+            self.product_sn, self.device_sn)
+        self.publish(topic=topic, payload=online_message)
 
     def unregister(self):
         # TODO do unregister
@@ -38,7 +60,6 @@ class ThingClient(object):
     def publish(self, topic, payload):
         # publish message to message router
         data = {
-            'deviceSN': self.deviceSN,
             'topic': topic,
             'payload': payload
         }

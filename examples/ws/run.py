@@ -8,22 +8,27 @@ import json
 
 
 async def handler(websocket, path):
-    login = await websocket.recv()
-    data = json.loads(login)
-    deviceSN = data['deviceSN']
-
-    print('receive connect ', deviceSN)
-
-    client = ThingClient(deviceSN, "0001", lambda x: x)
-    client.registerAndOnline()
-
     try:
+        login = await websocket.recv()
+        data = json.loads(login)
+        deviceSN = data['deviceSN']
+
+        print('receive connect ', deviceSN)
+
+        client = ThingClient(deviceSN, "0001", lambda x: x)
+        client.registerAndOnline()
+
         async for message in websocket:
-            data = json.loads(message)
-            client.publish(data['topic'], data['payload'])
+            try:
+                data = json.loads(message)
+                print("receive data: ", data)
+                client.publish(data['topic'], data['payload'])
+            except Exception as e:
+                print('read message error', e)
+                continue
 
     except Exception as e:
-        print(e)
+        print('websocket error', e)
     finally:
         print('connect closed .', deviceSN)
 
