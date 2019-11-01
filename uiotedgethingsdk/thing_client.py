@@ -67,7 +67,7 @@ def getConfig():
     return json.dumps(config)
 
 
-def on_message(message):
+def _on_message(message):
     # TODO driver message router ot subdevice
     device_sn = message['deviceSN']
     _thingclients[device_sn].callback(message)
@@ -84,4 +84,4 @@ with open("/edge/config/config.json", 'r') as load_f:
 _dirver_id = ''.join(random.sample(string.ascii_letters + string.digits, 16))
 print("dirver_id: ", _dirver_id)
 
-_natsclient.subscribe(subject='edge.local.'+_dirver_id, callback=on_message)
+_natsclient.subscribe(subject='edge.local.'+_dirver_id, callback=_on_message)
