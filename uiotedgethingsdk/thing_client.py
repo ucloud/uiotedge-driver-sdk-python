@@ -23,8 +23,7 @@ class ThingClient(object):
         self.callback = callback
 
     def online(self):
-        # TODO send online message
-        pass
+        self.registerAndOnline()
 
     def offline(self):
         print("on offline")
@@ -61,6 +60,7 @@ class ThingClient(object):
     def publish(self, topic, payload):
         # publish message to message router
         data = {
+            'src': 'local',
             'topic': topic,
             'payload': payload
         }
