@@ -24,6 +24,7 @@ class ThingClient(object):
         self.on_topo_add_callback = on_topo_add_callback
         self.on_topo_delete_callback = on_topo_delete_callback
         self.on_topo_set_change_callback = on_topo_set_change_callback
+        self._identity = self.product_sn+'.'+self.device_sn
 
     def login(self):
         print("on login")
@@ -34,7 +35,7 @@ class ThingClient(object):
         self._logout()
 
     def _logout(self):
-        _thingclients.pop(self.device_sn)
+        _thingclients.pop(self._identity)
         offline_message = {
             'RequestID': _generate_request_id(),
             'Params': {
@@ -47,7 +48,7 @@ class ThingClient(object):
         self.publish(topic=topic, payload=offline_message)
 
     def _login(self):
-        _thingclients[self.device_sn] = self
+        _thingclients[self._identity] = self
         online_message = {
             'RequestID': _generate_request_id(),
             'Params': {
@@ -71,13 +72,13 @@ class ThingClient(object):
     def publish(self, topic, payload):
         # publish message to message router
         data = {
-            'driver_id': _dirver_id,
             'src': 'local',
             'topic': topic,
             'payload': payload
         }
         bty = json.dumps(data)
-        _natsclient.publish(subject='edge.router', payload=bty.encode('utf-8'))
+        _natsclient.publish(subject='edge.router'+_dirver_id,
+                            payload=bty.encode('utf-8'))
 
 
 class Config(object):
