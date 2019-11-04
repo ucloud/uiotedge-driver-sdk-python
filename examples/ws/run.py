@@ -11,11 +11,12 @@ async def handler(websocket, path):
     try:
         login = await websocket.recv()
         data = json.loads(login)
+        productSN = data['productSN']
         deviceSN = data['deviceSN']
 
         print('receive connect ', deviceSN)
 
-        client = ThingClient(deviceSN, "0001", lambda x: x)
+        client = ThingClient(productSN, deviceSN, lambda x: x)
         client.login()
 
         async for message in websocket:

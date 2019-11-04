@@ -17,7 +17,7 @@ def _generate_request_id():
 
 
 class ThingClient(object):
-    def __init__(self, device_sn, product_sn, on_msg_callback=None, on_topo_add_callback=None, on_topo_delete_callback=None, on_topo_set_change_callback=None):
+    def __init__(self, product_sn, device_sn,  on_msg_callback=None, on_topo_add_callback=None, on_topo_delete_callback=None, on_topo_set_change_callback=None):
         self.device_sn = device_sn
         self.product_sn = product_sn
         self.callback = on_msg_callback
@@ -42,7 +42,7 @@ class ThingClient(object):
                 'DeviceSN': self.device_sn
             }
         }
-        topic = '/$system/%s/%d/subdev/logout' % (
+        topic = '/$system/%s/%s/subdev/logout' % (
             self.product_sn, self.device_sn)
         self.publish(topic=topic, payload=offline_message)
 
