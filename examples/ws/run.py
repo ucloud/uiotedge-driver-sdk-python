@@ -1,8 +1,5 @@
-from uiotedgethingsdk.thing_client import ThingClient
-
+from uiotedgethingsdk.thing_client import ThingClient, set_on_topo_change_callback
 import asyncio
-import datetime
-import random
 import websockets
 import json
 
@@ -34,7 +31,10 @@ async def handler(websocket, path):
         client.logout()
         print('connect closed .', deviceSN)
 
-start_server = websockets.serve(handler, "0.0.0.0", 5678)
+# set on topo change callback
+set_on_topo_change_callback(lambda x: print(x))
 
+# start websocket server
+start_server = websockets.serve(handler, "0.0.0.0", 5678)
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()

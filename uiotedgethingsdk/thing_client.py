@@ -1,4 +1,3 @@
-import asyncio
 import json
 import random
 import string
@@ -18,11 +17,20 @@ def _generate_request_id():
     return ''.join(random.sample(string.ascii_letters + string.digits, 16))
 
 
+class _device_topo(object):
+    def __init__(self, callback):
+        self.callback = callback
+
+    def run(self, message):
+        self.callback(message)
+
+
 _on_topo_change_callback = None
 
 
 def set_on_topo_change_callback(callback):
-    _on_topo_change_callback = callback
+    global _on_topo_change_callback
+    _on_topo_change_callback = _device_topo(callback)
 
 
 def get_topo():
@@ -166,7 +174,7 @@ def _on_message(message):
         if isinstance(topic, str):
             if topic.endswith('/subdev/topo/get_reply') and topic.startswith('/$system/'):
                 if _on_topo_change_callback:
-                    _on_topo_change_callback(message)
+                    _on_topo_change_callback.run(message)
             elif topic.endswith('/subdev/topo/delete_reply') and topic.startswith('/$system/'):
                 request_id = message['payload']['RequestID']
                 if _cache.has(request_id):
@@ -179,7 +187,7 @@ def _on_message(message):
                     sub_dev.on_topo_add_callback(message)
             elif (topic.endswith("/subdev/topo/notify/add") or topic.endswith("/subdev/topo/notify/delete")) and topic.startswith("/$system/"):
                 if _on_topo_change_callback:
-                    _on_topo_change_callback(message)
+                    _on_topo_change_callback.run(message)
             else:
 
                 device_sn = message['deviceSN']
