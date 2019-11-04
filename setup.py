@@ -14,6 +14,7 @@ setup(
     install_requires=[
         "setuptools>=16.0",
         "nats-python>=0.5.0",
+        "cacheout>=0.11.2",
         "websockets>=8.0.2"
     ],
     description="UIoT Edge Driver Access SDK"

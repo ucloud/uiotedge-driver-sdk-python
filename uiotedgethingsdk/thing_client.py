@@ -71,12 +71,13 @@ class ThingClient(object):
     def publish(self, topic, payload):
         # publish message to message router
         data = {
+            'driver_id': _dirver_id,
             'src': 'local',
             'topic': topic,
             'payload': payload
         }
         bty = json.dumps(data)
-        _natsclient.publish(subject='nats.router', payload=bty.encode('utf-8'))
+        _natsclient.publish(subject='edge.router', payload=bty.encode('utf-8'))
 
 
 class Config(object):
