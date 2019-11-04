@@ -172,24 +172,30 @@ def _on_message(message):
     try:
         topic = message['topic']
         if isinstance(topic, str):
-            if topic.endswith('/subdev/topo/get_reply') and topic.startswith('/$system/'):
+            if (topic.endswith("/subdev/topo/notify/add") or topic.endswith("/subdev/topo/notify/delete") or topic.endswith('/subdev/topo/get_reply')) and topic.startswith("/$system/"):
+                # on topo change callback
                 if _on_topo_change_callback:
                     _on_topo_change_callback.run(message)
+
             elif topic.endswith('/subdev/topo/delete_reply') and topic.startswith('/$system/'):
+                # on topo delete callback
                 request_id = message['payload']['RequestID']
                 if _cache.has(request_id):
                     identity = _cache.get(request_id)
                     sub_dev = _thingclients[identity]
                     if sub_dev.on_topo_delete_callback:
                         sub_dev.on_topo_delete_callback(message)
-            elif topic.endswith('/subdev/topo/add_reply') and topic.startswith('/$system/'):
-                if sub_dev.on_topo_add_callback:
-                    sub_dev.on_topo_add_callback(message)
-            elif (topic.endswith("/subdev/topo/notify/add") or topic.endswith("/subdev/topo/notify/delete")) and topic.startswith("/$system/"):
-                if _on_topo_change_callback:
-                    _on_topo_change_callback.run(message)
-            else:
 
+            elif topic.endswith('/subdev/topo/add_reply') and topic.startswith('/$system/'):
+                # on topo add callback
+                request_id = message['payload']['RequestID']
+                if _cache.has(request_id):
+                    identity = _cache.get(request_id)
+                    sub_dev = _thingclients[identity]
+                    if sub_dev.on_topo_add_callback:
+                        sub_dev.on_topo_add_callback(message)
+
+            else:
                 device_sn = message['deviceSN']
                 sub_dev = None
                 if isinstance(device_sn, str):
