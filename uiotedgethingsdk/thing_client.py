@@ -17,16 +17,23 @@ def _generate_request_id():
 
 
 class ThingClient(object):
-    def __init__(self, device_sn, product_sn, callback):
+    def __init__(self, device_sn, product_sn, on_msg_callback=None, on_topo_add_callback=None, on_topo_delete_callback=None, on_topo_set_change_callback=None):
         self.device_sn = device_sn
         self.product_sn = product_sn
-        self.callback = callback
+        self.callback = on_msg_callback
+        self.on_topo_add_callback = on_topo_add_callback
+        self.on_topo_delete_callback = on_topo_delete_callback
+        self.on_topo_set_change_callback = on_topo_set_change_callback
 
-    def online(self):
-        self.registerAndOnline()
+    def login(self):
+        print("on login")
+        self._login()
 
-    def offline(self):
-        print("on offline")
+    def logout(self):
+        print("on logout")
+        self._logout()
+
+    def _logout(self):
         _thingclients.pop(self.device_sn)
         offline_message = {
             'RequestID': _generate_request_id(),
@@ -39,8 +46,7 @@ class ThingClient(object):
             self.product_sn, self.device_sn)
         self.publish(topic=topic, payload=offline_message)
 
-    def registerAndOnline(self):
-        print("on registerAndOnline")
+    def _login(self):
         _thingclients[self.device_sn] = self
         online_message = {
             'RequestID': _generate_request_id(),
@@ -53,9 +59,14 @@ class ThingClient(object):
             self.product_sn, self.device_sn)
         self.publish(topic=topic, payload=online_message)
 
-    def unregister(self):
-        # TODO do unregister
-        pass
+    def get_topo(self):
+        get_topo = {
+            'RequestID': _generate_request_id(),
+            "Params": []
+        }
+        topic = '/$system/%s/%s/subdev/topo/get' % (
+            self.product_sn, self.device_sn)
+        self.publish(topic=topic, payload=get_topo)
 
     def publish(self, topic, payload):
         # publish message to message router
@@ -90,9 +101,40 @@ def getConfig():
 
 
 def _on_message(message):
-    # TODO driver message router ot subdevice
-    device_sn = message['deviceSN']
-    _thingclients[device_sn].callback(message)
+    # driver message router ot subdevice
+    try:
+        device_sn = message['deviceSN']
+        topic = message['topic']
+        sub_dev = None
+        if isinstance(device_sn, str):
+            sub_dev = _thingclients[device_sn]
+        else:
+            print('unknown message deviceSN')
+            return
+
+        if isinstance(topic, str):
+            if topic.endswith('/subdev/topo/get_reply') and topic.startswith('/$system/'):
+                if sub_dev.on_topo_add_callback:
+                    sub_dev.on_topo_add_callback(message)
+            elif topic.endswith('/subdev/topo/delete_reply') and topic.startswith('/$system/'):
+                if sub_dev.on_topo_delete_callback:
+                    sub_dev.on_topo_delete_callback(message)
+            elif topic.endswith('/subdev/topo/add_reply') and topic.startswith('/$system/'):
+                if sub_dev.on_topo_add_callback:
+                    sub_dev.on_topo_add_callback(message)
+            elif (topic.endswith("/subdev/topo/notify/add") or topic.endswith("/subdev/topo/notify/delete")) and topic.startswith("/$system/"):
+                if sub_dev.on_topo_set_change_callback:
+                    sub_dev.on_topo_set_change_callback(
+                        message)
+            else:
+                if sub_dev.on_msg_callback:
+                    sub_dev.on_msg_callback(message)
+        else:
+            print('unknown message topic')
+            return
+
+    except Exception as e:
+        print(e)
 
 
 # get Config

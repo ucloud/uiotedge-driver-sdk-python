@@ -16,7 +16,7 @@ async def handler(websocket, path):
         print('receive connect ', deviceSN)
 
         client = ThingClient(deviceSN, "0001", lambda x: x)
-        client.registerAndOnline()
+        client.login()
 
         async for message in websocket:
             try:
@@ -30,6 +30,7 @@ async def handler(websocket, path):
     except Exception as e:
         print('websocket error', e)
     finally:
+        client.logout()
         print('connect closed .', deviceSN)
 
 start_server = websockets.serve(handler, "0.0.0.0", 5678)
