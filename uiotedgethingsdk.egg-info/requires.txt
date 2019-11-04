@@ -1,3 +1,0 @@
-setuptools>=16.0
-nats-python>=0.5.0
-websockets>=8.0.2
