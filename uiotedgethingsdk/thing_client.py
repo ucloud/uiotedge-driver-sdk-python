@@ -3,11 +3,13 @@ import json
 import random
 import string
 from pynats import NATSClient
+from cacheout import Cache
 
 _deviceInfos = []
 _driverInfo = None
 _nats_url = 'tcp://106.75.237.117:4222'
 _thingclients = {}
+_cache = Cache(maxsize=1024, ttl=300)
 _natsclient = NATSClient(url=_nats_url, socket_timeout=5)
 _natsclient.connect()
 
@@ -16,14 +18,39 @@ def _generate_request_id():
     return ''.join(random.sample(string.ascii_letters + string.digits, 16))
 
 
+_on_topo_change_callback = None
+
+
+def set_on_topo_change_callback(callback):
+    _on_topo_change_callback = callback
+
+
+def get_topo():
+    request_id = _generate_request_id()
+    topic = '/$system/%s/%s/subdev/topo/get' % (
+        "0001", "123456")
+
+    data = {
+        'src': 'local',
+        'topic': topic,
+        'payload': {
+            'RequestID': request_id,
+            "Params": []
+        }
+    }
+    bty = json.dumps(data)
+    _natsclient.publish(subject='edge.router'+_dirver_id,
+                        payload=bty.encode('utf-8'))
+    # _cache.set(request_id, self._identity)
+
+
 class ThingClient(object):
-    def __init__(self, product_sn, device_sn,  on_msg_callback=None, on_topo_add_callback=None, on_topo_delete_callback=None, on_topo_set_change_callback=None):
+    def __init__(self, product_sn, device_sn, on_msg_callback=None, on_topo_add_callback=None, on_topo_delete_callback=None):
         self.device_sn = device_sn
         self.product_sn = product_sn
         self.callback = on_msg_callback
         self.on_topo_add_callback = on_topo_add_callback
         self.on_topo_delete_callback = on_topo_delete_callback
-        self.on_topo_set_change_callback = on_topo_set_change_callback
         self._identity = self.product_sn+'.'+self.device_sn
 
     def login(self):
@@ -36,8 +63,9 @@ class ThingClient(object):
 
     def _logout(self):
         _thingclients.pop(self._identity)
+        request_id = _generate_request_id()
         offline_message = {
-            'RequestID': _generate_request_id(),
+            'RequestID': request_id,
             'Params': {
                 'ProductSN': self.product_sn,
                 'DeviceSN': self.device_sn
@@ -47,10 +75,14 @@ class ThingClient(object):
             self.product_sn, self.device_sn)
         self.publish(topic=topic, payload=offline_message)
 
+        # _cache.set(request_id, self._identity)  # add cache for callback
+
     def _login(self):
         _thingclients[self._identity] = self
+
+        request_id = _generate_request_id()
         online_message = {
-            'RequestID': _generate_request_id(),
+            'RequestID': request_id,
             'Params': {
                 'ProductSN': self.product_sn,
                 'DeviceSN': self.device_sn
@@ -60,14 +92,39 @@ class ThingClient(object):
             self.product_sn, self.device_sn)
         self.publish(topic=topic, payload=online_message)
 
-    def get_topo(self):
+        # _cache.set(request_id, self._identity)  # add cache for callback
+
+    def add_topo(self):
+        request_id = _generate_request_id()
         get_topo = {
-            'RequestID': _generate_request_id(),
-            "Params": []
+            'RequestID': request_id,
+            "Params": [
+                {
+                    'ProductSN': self.product_sn,
+                    'DeviceSN': self.device_sn
+                }
+            ]
         }
-        topic = '/$system/%s/%s/subdev/topo/get' % (
+        topic = '/$system/%s/%s/subdev/topo/add' % (
             self.product_sn, self.device_sn)
         self.publish(topic=topic, payload=get_topo)
+        _cache.set(request_id, self._identity)  # add cache for callback
+
+    def delete_topo(self):
+        request_id = _generate_request_id()
+        get_topo = {
+            'RequestID': request_id,
+            "Params": [
+                {
+                    'ProductSN': self.product_sn,
+                    'DeviceSN': self.device_sn
+                }
+            ]
+        }
+        topic = '/$system/%s/%s/subdev/topo/delete' % (
+            self.product_sn, self.device_sn)
+        self.publish(topic=topic, payload=get_topo)
+        _cache.set(request_id, self._identity)  # add cache for callback
 
     def publish(self, topic, payload):
         # publish message to message router
@@ -105,30 +162,33 @@ def getConfig():
 def _on_message(message):
     # driver message router ot subdevice
     try:
-        device_sn = message['deviceSN']
         topic = message['topic']
-        sub_dev = None
-        if isinstance(device_sn, str):
-            sub_dev = _thingclients[device_sn]
-        else:
-            print('unknown message deviceSN')
-            return
-
         if isinstance(topic, str):
             if topic.endswith('/subdev/topo/get_reply') and topic.startswith('/$system/'):
-                if sub_dev.on_topo_add_callback:
-                    sub_dev.on_topo_add_callback(message)
+                if _on_topo_change_callback:
+                    _on_topo_change_callback(message)
             elif topic.endswith('/subdev/topo/delete_reply') and topic.startswith('/$system/'):
-                if sub_dev.on_topo_delete_callback:
-                    sub_dev.on_topo_delete_callback(message)
+                request_id = message['payload']['RequestID']
+                if _cache.has(request_id):
+                    identity = _cache.get(request_id)
+                    sub_dev = _thingclients[identity]
+                    if sub_dev.on_topo_delete_callback:
+                        sub_dev.on_topo_delete_callback(message)
             elif topic.endswith('/subdev/topo/add_reply') and topic.startswith('/$system/'):
                 if sub_dev.on_topo_add_callback:
                     sub_dev.on_topo_add_callback(message)
             elif (topic.endswith("/subdev/topo/notify/add") or topic.endswith("/subdev/topo/notify/delete")) and topic.startswith("/$system/"):
-                if sub_dev.on_topo_set_change_callback:
-                    sub_dev.on_topo_set_change_callback(
-                        message)
+                if _on_topo_change_callback:
+                    _on_topo_change_callback(message)
             else:
+
+                device_sn = message['deviceSN']
+                sub_dev = None
+                if isinstance(device_sn, str):
+                    sub_dev = _thingclients[device_sn]
+                else:
+                    print('unknown message deviceSN')
+                    return
                 if sub_dev.on_msg_callback:
                     sub_dev.on_msg_callback(message)
         else:
