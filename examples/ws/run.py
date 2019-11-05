@@ -11,7 +11,7 @@ async def handler(websocket, path):
         productSN = data['productSN']
         deviceSN = data['deviceSN']
 
-        print('receive connect ', deviceSN)
+        print('receive connect ', productSN, deviceSN)
 
         client = ThingClient(productSN, deviceSN, lambda x: x)
         client.login()
