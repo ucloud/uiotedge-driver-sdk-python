@@ -38,16 +38,18 @@ def get_topo():
     topic = '/$system/%s/%s/subdev/topo/get' % (
         "0001", "123456")
 
-    data = {
+    get_topo = {
         'src': 'local',
         'topic': topic,
-        'payload': {
-            'RequestID': request_id,
-            "Params": []
-        }
+        'payload': [
+            {
+                'RequestID': request_id,
+                "Params": []
+            }
+        ]
     }
-    bty = json.dumps(data)
-    _natsclient.publish(subject='edge.router'+_dirver_id,
+    bty = json.dumps(get_topo)
+    _natsclient.publish(subject='edge.router.'+_dirver_id,
                         payload=bty.encode('utf-8'))
     # _cache.set(request_id, self._identity)
 
@@ -74,10 +76,12 @@ class ThingClient(object):
         request_id = _generate_request_id()
         offline_message = {
             'RequestID': request_id,
-            'Params': {
-                'ProductSN': self.product_sn,
-                'DeviceSN': self.device_sn
-            }
+            'Params': [
+                {
+                    'ProductSN': self.product_sn,
+                    'DeviceSN': self.device_sn
+                }
+            ]
         }
         topic = '/$system/%s/%s/subdev/logout' % (
             self.product_sn, self.device_sn)
@@ -91,10 +95,12 @@ class ThingClient(object):
         request_id = _generate_request_id()
         online_message = {
             'RequestID': request_id,
-            'Params': {
-                'ProductSN': self.product_sn,
-                'DeviceSN': self.device_sn
-            }
+            'Params': [
+                {
+                    'ProductSN': self.product_sn,
+                    'DeviceSN': self.device_sn
+                }
+            ]
         }
         topic = '/$system/%s/%s/subdev/login' % (
             self.product_sn, self.device_sn)
@@ -102,7 +108,23 @@ class ThingClient(object):
 
         # _cache.set(request_id, self._identity)  # add cache for callback
 
-    def add_topo(self):
+    def register(self, product_secret):
+        request_id = _generate_request_id()
+        register_data = {
+            'RequestID': request_id,
+            "Params": [
+                {
+                    'ProductSN': self.product_sn,
+                    'DeviceSN': self.device_sn,
+                    'ProductSecret': product_secret
+                }
+            ]
+        }
+        topic = '/$system/%s/%s/subdev/register' % (
+            self.product_sn, self.device_sn)
+        self.publish(topic=topic, payload=register_data)
+
+    def add_topo(self, is_cached=False, duration=0):
         request_id = _generate_request_id()
         get_topo = {
             'RequestID': request_id,
@@ -115,10 +137,11 @@ class ThingClient(object):
         }
         topic = '/$system/%s/%s/subdev/topo/add' % (
             self.product_sn, self.device_sn)
-        self.publish(topic=topic, payload=get_topo)
+        self.publish(topic=topic, payload=get_topo,
+                     is_cached=is_cached, duration=duration)
         _cache.set(request_id, self._identity)  # add cache for callback
 
-    def delete_topo(self):
+    def delete_topo(self, is_cached=False, duration=0):
         request_id = _generate_request_id()
         get_topo = {
             'RequestID': request_id,
@@ -131,18 +154,21 @@ class ThingClient(object):
         }
         topic = '/$system/%s/%s/subdev/topo/delete' % (
             self.product_sn, self.device_sn)
-        self.publish(topic=topic, payload=get_topo)
+        self.publish(topic=topic, payload=get_topo,
+                     is_cached=is_cached, duration=duration)
         _cache.set(request_id, self._identity)  # add cache for callback
 
-    def publish(self, topic, payload):
+    def publish(self, topic, payload, is_cached=False, duration=0):
         # publish message to message router
         data = {
             'src': 'local',
             'topic': topic,
+            'isCatched': is_cached,
+            'duration': duration,
             'payload': payload
         }
         bty = json.dumps(data)
-        _natsclient.publish(subject='edge.router'+_dirver_id,
+        _natsclient.publish(subject='edge.router.'+_dirver_id,
                             payload=bty.encode('utf-8'))
 
 
@@ -172,29 +198,31 @@ def _on_message(message):
     try:
         topic = message['topic']
         if isinstance(topic, str):
+            # on topo change callback
             if (topic.endswith("/subdev/topo/notify/add") or topic.endswith("/subdev/topo/notify/delete") or topic.endswith('/subdev/topo/get_reply')) and topic.startswith("/$system/"):
-                # on topo change callback
+
                 if _on_topo_change_callback:
                     _on_topo_change_callback.run(message)
 
+            # on topo delete callback
             elif topic.endswith('/subdev/topo/delete_reply') and topic.startswith('/$system/'):
-                # on topo delete callback
+
                 request_id = message['payload']['RequestID']
                 if _cache.has(request_id):
                     identity = _cache.get(request_id)
                     sub_dev = _thingclients[identity]
                     if sub_dev.on_topo_delete_callback:
                         sub_dev.on_topo_delete_callback(message)
-
+            # on topo add callback
             elif topic.endswith('/subdev/topo/add_reply') and topic.startswith('/$system/'):
-                # on topo add callback
+
                 request_id = message['payload']['RequestID']
                 if _cache.has(request_id):
                     identity = _cache.get(request_id)
                     sub_dev = _thingclients[identity]
                     if sub_dev.on_topo_add_callback:
                         sub_dev.on_topo_add_callback(message)
-
+            # on normal callback
             else:
                 device_sn = message['deviceSN']
                 sub_dev = None
