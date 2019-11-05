@@ -15,6 +15,7 @@ async def handler(websocket, path):
 
         client = ThingClient(productSN, deviceSN, lambda x: x)
         client.login()
+        # client.add_topo()
 
         async for message in websocket:
             try:
