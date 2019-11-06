@@ -41,12 +41,11 @@ def get_topo():
     get_topo = {
         'src': 'local',
         'topic': topic,
-        'payload': [
-            {
-                'RequestID': request_id,
-                "Params": []
-            }
-        ]
+        'payload': {
+            'RequestID': request_id,
+            "Params": []
+        }
+
     }
     bty = json.dumps(get_topo)
     _natsclient.publish(subject='edge.router.'+_dirver_id,
