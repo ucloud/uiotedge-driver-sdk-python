@@ -12,20 +12,28 @@ async def handler(websocket, path):
         deviceSN = data['deviceSN']
 
         print('receive connect ', productSN, deviceSN)
+        await websocket.send("connect success")
 
-        queue = asyncio.Queue()
+        async def send_to_websocket(msg):
+            await websocket.send(msg)
+
+        def send(msg):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(send_to_websocket(str(msg)))
+            loop.close()
 
         def on_topo_add_callback(msg):
             print('topo add:', msg)
-            queue.put(msg)
+            send(msg)
 
         def on_msg_callback(msg):
             print('msg receive:', msg)
-            queue.put(msg)
+            send(msg)
 
         def on_topo_delete_callback(msg):
             print('topo delet:', msg)
-            queue.put(msg)
+            send(msg)
 
         client = ThingClient(productSN, deviceSN,
                              on_msg_callback=on_msg_callback,
@@ -59,14 +67,6 @@ async def handler(websocket, path):
             except Exception as e:
                 print('read message error', e)
                 continue
-
-        async def wait():
-            msg = await queue.get()
-            await websocket.send(msg)
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(wait)
-        loop.close()
 
     except Exception as e:
         print('websocket error', e)
