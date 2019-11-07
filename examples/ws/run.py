@@ -18,12 +18,19 @@ async def handler(websocket, path):
         def on_topo_add_callback(msg):
             print('topo add:', msg)
             queue.put(msg)
-            # websocket.send(msg)
+
+        def on_msg_callback(msg):
+            print('msg receive:', msg)
+            queue.put(msg)
+
+        def on_topo_delete_callback(msg):
+            print('topo delet:', msg)
+            queue.put(msg)
 
         client = ThingClient(productSN, deviceSN,
-                             on_msg_callback=lambda x: print('msg:', x),
+                             on_msg_callback=on_msg_callback,
                              on_topo_add_callback=on_topo_add_callback,
-                             on_topo_delete_callback=lambda x: print('topo delete:', x))
+                             on_topo_delete_callback=on_topo_delete_callback)
         client.login()
 
         async for message in websocket:
