@@ -34,7 +34,7 @@ def set_on_topo_change_callback(callback):
     _on_topo_change_callback = _device_topo(callback)
 
 
-def get_topo():
+def get_topo(is_cached=False, duration=0):
     request_id = _generate_request_id()
     topic = '/$system/%s/%s/subdev/topo/get' % (
         "0001", "123456")
@@ -42,6 +42,8 @@ def get_topo():
     get_topo = {
         'src': 'local',
         'topic': topic,
+        'isCatched': is_cached,
+        'duration': duration,
         'payload': {
             'RequestID': request_id,
             "Params": []
