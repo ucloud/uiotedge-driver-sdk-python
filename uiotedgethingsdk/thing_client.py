@@ -1,6 +1,7 @@
 import json
 import random
 import string
+import threading
 from pynats import NATSClient
 from cacheout import Cache
 
@@ -9,7 +10,7 @@ _driverInfo = None
 _nats_url = 'tcp://106.75.237.117:4222'
 _thingclients = {}
 _cache = Cache(maxsize=1024, ttl=300)
-_natsclient = NATSClient(url=_nats_url, socket_timeout=5)
+_natsclient = NATSClient(url=_nats_url)
 _natsclient.connect()
 
 
@@ -63,11 +64,11 @@ class ThingClient(object):
         self._identity = self.product_sn+'.'+self.device_sn
 
     def login(self):
-        print("on login")
+        # print("on login")
         self._login()
 
     def logout(self):
-        print("on logout")
+        # print("on logout")
         self._logout()
 
     def _logout(self):
@@ -194,36 +195,53 @@ def getConfig():
 
 def _on_message(message):
     # driver message router ot subdevice
+
+    payload = str(message.payload, encoding="utf-8")
+    # print(payload)
+    js = json.loads(payload)
     try:
-        topic = message['topic']
+        topic = js['topic']
+        msg = js['payload']
         if isinstance(topic, str):
             # on topo change callback
             if (topic.endswith("/subdev/topo/notify/add") or topic.endswith("/subdev/topo/notify/delete") or topic.endswith('/subdev/topo/get_reply')) and topic.startswith("/$system/"):
 
                 if _on_topo_change_callback:
-                    _on_topo_change_callback.run(message)
+                    _on_topo_change_callback.run(msg)
 
             # on topo delete callback
             elif topic.endswith('/subdev/topo/delete_reply') and topic.startswith('/$system/'):
 
-                request_id = message['payload']['RequestID']
+                request_id = msg['RequestID']
                 if _cache.has(request_id):
                     identity = _cache.get(request_id)
                     sub_dev = _thingclients[identity]
                     if sub_dev.on_topo_delete_callback:
-                        sub_dev.on_topo_delete_callback(message)
+                        sub_dev.on_topo_delete_callback(msg)
             # on topo add callback
             elif topic.endswith('/subdev/topo/add_reply') and topic.startswith('/$system/'):
 
-                request_id = message['payload']['RequestID']
+                request_id = msg['RequestID']
                 if _cache.has(request_id):
                     identity = _cache.get(request_id)
                     sub_dev = _thingclients[identity]
                     if sub_dev.on_topo_add_callback:
-                        sub_dev.on_topo_add_callback(message)
+                        sub_dev.on_topo_add_callback(msg)
+
+            # on login and logout
+            elif topic.endswith('/subdev/login_reply') and topic.startswith('/$system/'):
+                request_id = msg['RequestID']
+                ret_code = msg['RetCode']
+                print('login retcode', ret_code, " request_id:", request_id)
+
+            elif topic.endswith('/subdev/logout_reply') and topic.startswith('/$system/'):
+                request_id = msg['RequestID']
+                ret_code = msg['RetCode']
+                print('logout retcode', ret_code, " request_id:", request_id)
+
             # on normal callback
             else:
-                device_sn = message['deviceSN']
+                device_sn = msg['deviceSN']
                 sub_dev = None
                 if isinstance(device_sn, str):
                     sub_dev = _thingclients[device_sn]
@@ -231,7 +249,7 @@ def _on_message(message):
                     print('unknown message deviceSN')
                     return
                 if sub_dev.on_msg_callback:
-                    sub_dev.on_msg_callback(message)
+                    sub_dev.on_msg_callback(msg)
         else:
             print('unknown message topic')
             return
@@ -251,4 +269,12 @@ with open("/edge/config/config.json", 'r') as load_f:
 _dirver_id = ''.join(random.sample(string.ascii_letters + string.digits, 16))
 print("dirver_id: ", _dirver_id)
 
-_natsclient.subscribe(subject='edge.local.'+_dirver_id, callback=_on_message)
+_natsclient.subscribe(subject='edge.local.'+_dirver_id,
+                      callback=_on_message)
+
+
+def _wait():
+    _natsclient.wait()
+
+
+threading.Thread(target=_wait).start()

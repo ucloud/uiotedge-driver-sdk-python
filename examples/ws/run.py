@@ -13,14 +13,21 @@ async def handler(websocket, path):
 
         print('receive connect ', productSN, deviceSN)
 
-        client = ThingClient(productSN, deviceSN, lambda x: x)
+        def on_topo_add_callback(msg):
+            print('topo add:', msg)
+            websocket.send(msg)
+
+        client = ThingClient(productSN, deviceSN,
+                             on_msg_callback=lambda x: print('msg:', x),
+                             on_topo_add_callback=on_topo_add_callback,
+                             on_topo_delete_callback=lambda x: print('topo delete:', x))
         client.login()
         # client.add_topo()
 
         async for message in websocket:
             try:
                 data = json.loads(message)
-                print("receive data: ", data)
+                print("receive subdev data: ", data)
                 if 'action' in data:
                     action = data['action']
                     if action == 'add_topo':
@@ -51,7 +58,7 @@ async def handler(websocket, path):
         print('connect closed .', deviceSN)
 
 # set on topo change callback
-set_on_topo_change_callback(lambda x: print(x))
+set_on_topo_change_callback(lambda x: print('topo get or notify:', x))
 
 # start websocket server
 start_server = websockets.serve(handler, "0.0.0.0", 5678)
