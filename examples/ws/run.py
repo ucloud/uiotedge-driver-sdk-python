@@ -1,4 +1,5 @@
 from uiotedgethingsdk.thing_client import ThingClient, set_on_topo_change_callback, get_topo
+from uiotedgethingsdk.thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException
 import asyncio
 import websockets
 import json
@@ -12,7 +13,6 @@ async def handler(websocket, path):
         deviceSN = data['deviceSN']
 
         print('receive connect ', productSN, deviceSN)
-        await websocket.send("connect success")
 
         async def send_to_websocket(msg):
             await websocket.send(msg)
@@ -23,23 +23,33 @@ async def handler(websocket, path):
             loop.run_until_complete(send_to_websocket(str(msg)))
             loop.close()
 
-        def on_topo_add_callback(msg):
-            print('topo add:', msg)
-            send(msg)
-
         def on_msg_callback(msg):
             print('msg receive:', msg)
             send(msg)
 
-        def on_topo_delete_callback(msg):
-            print('topo delet:', msg)
+        def on_status_change_callback(msg):
+            print('status change:', msg)
             send(msg)
 
         client = ThingClient(productSN, deviceSN,
                              on_msg_callback=on_msg_callback,
-                             on_topo_add_callback=on_topo_add_callback,
-                             on_topo_delete_callback=on_topo_delete_callback)
-        client.login()
+                             on_disable_enable_callback=on_status_change_callback)
+        try:
+            client.login()
+            await websocket.send("connect success")
+        except UIoTEdgeDriverException as e:
+            print('login failed:'+e.msg)
+            await websocket.send(e.msg)
+            await websocket.close()
+            return
+        except UIoTEdgeTimeoutException as e:
+            print('login failed: timeout')
+            await websocket.send('login timeout')
+            await websocket.close()
+            return
+        except Exception as e:
+            print(e)
+            return
 
         async for message in websocket:
             try:
@@ -72,7 +82,9 @@ async def handler(websocket, path):
         print('websocket error', e)
     finally:
         client.logout()
+        websocket.close()
         print('connect closed .', deviceSN)
+        return
 
 # set on topo change callback
 set_on_topo_change_callback(lambda x: print('topo get or notify:', x))

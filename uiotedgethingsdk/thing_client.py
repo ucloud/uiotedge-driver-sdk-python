@@ -5,7 +5,7 @@ import threading
 import queue
 from pynats import NATSClient
 from cacheout import Cache
-from thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException
+from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException
 
 _deviceInfos = []
 _driverInfo = None
