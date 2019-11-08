@@ -90,8 +90,27 @@ class ThingClient(object):
 
     def login(self, is_cached=False, duration=0):
         _thingclients[self._identity] = self
+
+        request_id = _generate_request_id()
+        topic = '/$system/%s/%s/subdev/login' % (
+            self.product_sn, self.device_sn)
+
+        login_data = {
+            'RequestID': request_id,
+            'Params': [
+                {
+                    'ProductSN': self.product_sn,
+                    'DeviceSN': self.device_sn
+                }
+            ]
+        }
+
         try:
-            self._publish_online(is_cached=is_cached, duration=duration)
+            self._publish_without_login(
+                topic=topic, payload=login_data, is_cached=is_cached, duration=duration)
+            _cache.set(request_id, self._identity)  # add cache for callback
+
+            # wait for response
             msg = self._login_queue.get(block=True, timeout=5)
             if msg['RetCode'] != 0:
                 _thingclients.pop(self._identity)
@@ -121,7 +140,7 @@ class ThingClient(object):
             self.product_sn, self.device_sn)
 
         try:
-            self.publish(topic=topic, payload=register_data)
+            self._publish_without_login(topic=topic, payload=register_data)
             _cache.set(request_id, self._identity)  # add cache for callback
 
             msg = self._resgister_queue.get(block=True, timeout=5)
@@ -148,8 +167,8 @@ class ThingClient(object):
             self.product_sn, self.device_sn)
 
         try:
-            self.publish(topic=topic, payload=add_topo_data,
-                         is_cached=is_cached, duration=duration)
+            self._publish_without_login(topic=topic, payload=add_topo_data,
+                                        is_cached=is_cached, duration=duration)
             _cache.set(request_id, self._identity)  # add cache for callback
 
             msg = self._topo_add_queue.get(block=True, timeout=5)
@@ -175,8 +194,8 @@ class ThingClient(object):
         topic = '/$system/%s/%s/subdev/topo/delete' % (
             self.product_sn, self.device_sn)
         try:
-            self.publish(topic=topic, payload=delete_topo_data,
-                         is_cached=is_cached, duration=duration)
+            self._publish_without_login(topic=topic, payload=delete_topo_data,
+                                        is_cached=is_cached, duration=duration)
             _cache.set(request_id, self._identity)  # add cache for callback
 
             msg = self._topo_delete_queue.get(block=True, timeout=5)
@@ -188,30 +207,18 @@ class ThingClient(object):
         except Exception as e:
             raise e
 
-    def _publish_online(self, is_cached=False, duration=0):
-        request_id = _generate_request_id()
-        topic = '/$system/%s/%s/subdev/login' % (
-            self.product_sn, self.device_sn)
+    def _publish_without_login(self, topic, payload, is_cached=False, duration=0):
         data = {
             'src': 'local',
             'topic': topic,
             'isCatched': is_cached,
             'duration': duration,
-            'payload': {
-                'RequestID': request_id,
-                'Params': [
-                    {
-                        'ProductSN': self.product_sn,
-                        'DeviceSN': self.device_sn
-                    }
-                ]
-            }
+            'payload': payload
         }
 
         bty = json.dumps(data)
         _natsclient.publish(subject='edge.router.'+_dirver_id,
                             payload=bty.encode('utf-8'))
-        _cache.set(request_id, self._identity)  # add cache for callback
 
     def publish(self, topic, payload, is_cached=False, duration=0):
         if self.online:
@@ -254,7 +261,7 @@ def _on_message(message):
     # driver message router ot subdevice
 
     payload = str(message.payload, encoding="utf-8")
-    print(payload)
+    # print(payload)
     js = json.loads(payload)
     try:
         topic = js['topic']
