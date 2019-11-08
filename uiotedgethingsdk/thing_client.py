@@ -2,8 +2,10 @@ import json
 import random
 import string
 import threading
+import queue
 from pynats import NATSClient
 from cacheout import Cache
+from thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException
 
 _deviceInfos = []
 _driverInfo = None
@@ -18,7 +20,7 @@ def _generate_request_id():
     return ''.join(random.sample(string.ascii_letters + string.digits, 16))
 
 
-class _device_topo(object):
+class _device_notify(object):
     def __init__(self, callback):
         self.callback = callback
 
@@ -31,7 +33,7 @@ _on_topo_change_callback = None
 
 def set_on_topo_change_callback(callback):
     global _on_topo_change_callback
-    _on_topo_change_callback = _device_topo(callback)
+    _on_topo_change_callback = _device_notify(callback)
 
 
 def get_topo(is_cached=False, duration=0):
@@ -53,24 +55,25 @@ def get_topo(is_cached=False, duration=0):
     bty = json.dumps(get_topo)
     _natsclient.publish(subject='edge.router.'+_dirver_id,
                         payload=bty.encode('utf-8'))
-    # _cache.set(request_id, self._identity)
 
 
 class ThingClient(object):
-    def __init__(self, product_sn, device_sn, on_msg_callback=None, on_topo_add_callback=None, on_topo_delete_callback=None):
+    def __init__(self, product_sn, device_sn, on_msg_callback=None, on_disable_enable_callback=None):
         self.device_sn = device_sn
         self.product_sn = product_sn
         self.callback = on_msg_callback
-        self.on_topo_add_callback = on_topo_add_callback
-        self.on_topo_delete_callback = on_topo_delete_callback
         self._identity = self.product_sn+'.'+self.device_sn
+        self._login_queue = queue.Queue()
+        self._logout_queue = queue.Queue()
+        self._topo_add_queue = queue.Queue()
+        self._topo_delete_queue = queue.Queue()
+        self._resgister_queue = queue.Queue()
+        self.status_callback = on_disable_enable_callback
 
     def login(self):
-        # print("on login")
         self._login()
 
     def logout(self):
-        # print("on logout")
         self._logout()
 
     def _logout(self):
@@ -87,9 +90,19 @@ class ThingClient(object):
         }
         topic = '/$system/%s/%s/subdev/logout' % (
             self.product_sn, self.device_sn)
-        self.publish(topic=topic, payload=offline_message)
 
-        # _cache.set(request_id, self._identity)  # add cache for callback
+        try:
+            self.publish(topic=topic, payload=offline_message)
+            _cache.set(request_id, self._identity)  # add cache for callback
+
+            msg = self._logout_queue.get(block=True, timeout=5)
+            if msg['RetCode'] != 0:
+                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
+
+        except queue.Empty:
+            raise UIoTEdgeTimeoutException
+        except Exception as e:
+            raise e
 
     def _login(self):
         _thingclients[self._identity] = self
@@ -106,9 +119,18 @@ class ThingClient(object):
         }
         topic = '/$system/%s/%s/subdev/login' % (
             self.product_sn, self.device_sn)
-        self.publish(topic=topic, payload=online_message)
+        try:
+            self.publish(topic=topic, payload=online_message)
+            _cache.set(request_id, self._identity)  # add cache for callback
 
-        # _cache.set(request_id, self._identity)  # add cache for callback
+            msg = self._login_queue.get(block=True, timeout=5)
+            if msg['RetCode'] != 0:
+                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
+
+        except queue.Empty:
+            raise UIoTEdgeTimeoutException
+        except Exception as e:
+            raise e
 
     def register(self, product_secret):
         request_id = _generate_request_id()
@@ -124,11 +146,23 @@ class ThingClient(object):
         }
         topic = '/$system/%s/%s/subdev/register' % (
             self.product_sn, self.device_sn)
-        self.publish(topic=topic, payload=register_data)
+
+        try:
+            self.publish(topic=topic, payload=register_data)
+            _cache.set(request_id, self._identity)  # add cache for callback
+
+            msg = self._resgister_queue.get(block=True, timeout=5)
+            if msg['RetCode'] != 0:
+                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
+
+        except queue.Empty:
+            raise UIoTEdgeTimeoutException
+        except Exception as e:
+            raise e
 
     def add_topo(self, is_cached=False, duration=0):
         request_id = _generate_request_id()
-        get_topo = {
+        add_topo_data = {
             'RequestID': request_id,
             "Params": [
                 {
@@ -139,13 +173,24 @@ class ThingClient(object):
         }
         topic = '/$system/%s/%s/subdev/topo/add' % (
             self.product_sn, self.device_sn)
-        self.publish(topic=topic, payload=get_topo,
-                     is_cached=is_cached, duration=duration)
-        _cache.set(request_id, self._identity)  # add cache for callback
+
+        try:
+            self.publish(topic=topic, payload=add_topo_data,
+                         is_cached=is_cached, duration=duration)
+            _cache.set(request_id, self._identity)  # add cache for callback
+
+            msg = self._topo_add_queue.get(block=True, timeout=5)
+            if msg['RetCode'] != 0:
+                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
+
+        except queue.Empty:
+            raise UIoTEdgeTimeoutException
+        except Exception as e:
+            raise e
 
     def delete_topo(self, is_cached=False, duration=0):
         request_id = _generate_request_id()
-        get_topo = {
+        delete_topo_data = {
             'RequestID': request_id,
             "Params": [
                 {
@@ -156,9 +201,19 @@ class ThingClient(object):
         }
         topic = '/$system/%s/%s/subdev/topo/delete' % (
             self.product_sn, self.device_sn)
-        self.publish(topic=topic, payload=get_topo,
-                     is_cached=is_cached, duration=duration)
-        _cache.set(request_id, self._identity)  # add cache for callback
+        try:
+            self.publish(topic=topic, payload=delete_topo_data,
+                         is_cached=is_cached, duration=duration)
+            _cache.set(request_id, self._identity)  # add cache for callback
+
+            msg = self._topo_delete_queue.get(block=True, timeout=5)
+            if msg['RetCode'] != 0:
+                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
+
+        except queue.Empty:
+            raise UIoTEdgeTimeoutException
+        except Exception as e:
+            raise e
 
     def publish(self, topic, payload, is_cached=False, duration=0):
         # publish message to message router
@@ -218,8 +273,7 @@ def _on_message(message):
                 if _cache.has(request_id):
                     identity = _cache.get(request_id)
                     sub_dev = _thingclients[identity]
-                    if sub_dev.on_topo_delete_callback:
-                        sub_dev.on_topo_delete_callback(msg)
+                    sub_dev._topo_delete_queue.put(msg)
             # on topo add callback
             elif topic.endswith('/subdev/topo/add_reply') and topic.startswith('/$system/'):
 
@@ -227,31 +281,43 @@ def _on_message(message):
                 if _cache.has(request_id):
                     identity = _cache.get(request_id)
                     sub_dev = _thingclients[identity]
-                    if sub_dev.on_topo_add_callback:
-                        sub_dev.on_topo_add_callback(msg)
+                    sub_dev._topo_add_queue.put(msg)
 
             # on login and logout
             elif topic.endswith('/subdev/login_reply') and topic.startswith('/$system/'):
                 request_id = msg['RequestID']
-                ret_code = msg['RetCode']
-                print('login retcode', ret_code, " request_id:", request_id)
+                if _cache.has(request_id):
+                    identity = _cache.get(request_id)
+                    sub_dev = _thingclients[identity]
+                    sub_dev._login_queue.put(msg)
 
             elif topic.endswith('/subdev/logout_reply') and topic.startswith('/$system/'):
                 request_id = msg['RequestID']
-                ret_code = msg['RetCode']
-                print('logout retcode', ret_code, " request_id:", request_id)
+                if _cache.has(request_id):
+                    identity = _cache.get(request_id)
+                    sub_dev = _thingclients[identity]
+                    sub_dev._logout_queue.put(msg)
+            elif (topic.endswith('/subdev/enable') or topic.endswith('/subdev/disable')) and topic.startswith('/$system/'):
+                try:
+                    enable_list = msg['Params']
+                    for sub_device in enable_list:
+                        identify = sub_device['ProductSN'] + \
+                            '.'+sub_device['DeviceSN']
+                        if identify in _thingclients:
+                            sub_dev = _thingclients[identify]
+                            if sub_dev.status_callback:
+                                sub_dev.status_callback(msg)
+                except Exception as e:
+                    print(e)
 
             # on normal callback
             else:
-                device_sn = msg['deviceSN']
-                sub_dev = None
-                if isinstance(device_sn, str):
-                    sub_dev = _thingclients[device_sn]
-                else:
-                    print('unknown message deviceSN')
-                    return
-                if sub_dev.on_msg_callback:
-                    sub_dev.on_msg_callback(msg)
+                identify = sub_device['ProductSN'] + \
+                    '.'+sub_device['DeviceSN']
+                if identify in _thingclients:
+                    sub_dev = _thingclients[identify]
+                    if sub_dev.on_msg_callback:
+                        sub_dev.on_msg_callback(msg)
         else:
             print('unknown message topic')
             return
