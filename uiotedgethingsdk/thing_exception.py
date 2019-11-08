@@ -6,3 +6,7 @@ class UIoTEdgeDriverException(Exception):
 
 class UIoTEdgeTimeoutException(Exception):
     pass
+
+
+class UIoTEdgeDeviceOfflineException(Exception):
+    pass

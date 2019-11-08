@@ -1,5 +1,5 @@
 from uiotedgethingsdk.thing_client import ThingClient, set_on_topo_change_callback, get_topo
-from uiotedgethingsdk.thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException
+from uiotedgethingsdk.thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
 import asyncio
 import websockets
 import json
@@ -34,22 +34,8 @@ async def handler(websocket, path):
         client = ThingClient(productSN, deviceSN,
                              on_msg_callback=on_msg_callback,
                              on_disable_enable_callback=on_status_change_callback)
-        try:
-            client.login()
-            await websocket.send("connect success")
-        except UIoTEdgeDriverException as e:
-            print('login failed:'+e.msg)
-            await websocket.send(e.msg)
-            await websocket.close()
-            return
-        except UIoTEdgeTimeoutException as e:
-            print('login failed: timeout')
-            await websocket.send('login timeout')
-            await websocket.close()
-            return
-        except Exception as e:
-            print(e)
-            return
+        client.login()
+        await websocket.send("login success")
 
         async for message in websocket:
             try:
@@ -77,14 +63,18 @@ async def handler(websocket, path):
             except Exception as e:
                 print('read message error', e)
                 continue
-
+    except UIoTEdgeDeviceOfflineException as e:
+        await websocket.send("login message must be first")
+    except UIoTEdgeDriverException as e:
+        await websocket.send(e.msg)
+    except UIoTEdgeTimeoutException as e:
+        await websocket.send('login timeout')
     except Exception as e:
         print('websocket error', e)
     finally:
         client.logout()
         websocket.close()
         print('connect closed .', deviceSN)
-        return
 
 # set on topo change callback
 set_on_topo_change_callback(lambda x: print('topo get or notify:', x))

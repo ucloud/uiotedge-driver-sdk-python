@@ -5,7 +5,7 @@ import threading
 import queue
 from pynats import NATSClient
 from cacheout import Cache
-from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException
+from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
 
 _deviceInfos = []
 _driverInfo = None
@@ -64,19 +64,14 @@ class ThingClient(object):
         self.callback = on_msg_callback
         self._identity = self.product_sn+'.'+self.device_sn
         self._login_queue = queue.Queue()
-        self._logout_queue = queue.Queue()
         self._topo_add_queue = queue.Queue()
         self._topo_delete_queue = queue.Queue()
         self._resgister_queue = queue.Queue()
         self.status_callback = on_disable_enable_callback
-
-    def login(self):
-        self._login()
+        self.online = False
 
     def logout(self):
-        self._logout()
-
-    def _logout(self):
+        self.online = False
         _thingclients.pop(self._identity)
         request_id = _generate_request_id()
         offline_message = {
@@ -91,46 +86,24 @@ class ThingClient(object):
         topic = '/$system/%s/%s/subdev/logout' % (
             self.product_sn, self.device_sn)
 
-        try:
-            self.publish(topic=topic, payload=offline_message)
-            _cache.set(request_id, self._identity)  # add cache for callback
+        self.publish(topic=topic, payload=offline_message)
 
-            msg = self._logout_queue.get(block=True, timeout=5)
-            if msg['RetCode'] != 0:
-                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
-
-        except queue.Empty:
-            raise UIoTEdgeTimeoutException
-        except Exception as e:
-            raise e
-
-    def _login(self):
+    def login(self, is_cached=False, duration=0):
         _thingclients[self._identity] = self
-
-        request_id = _generate_request_id()
-        online_message = {
-            'RequestID': request_id,
-            'Params': [
-                {
-                    'ProductSN': self.product_sn,
-                    'DeviceSN': self.device_sn
-                }
-            ]
-        }
-        topic = '/$system/%s/%s/subdev/login' % (
-            self.product_sn, self.device_sn)
         try:
-            self.publish(topic=topic, payload=online_message)
-            _cache.set(request_id, self._identity)  # add cache for callback
-
+            self._publish_online(is_cached=is_cached, duration=duration)
             msg = self._login_queue.get(block=True, timeout=5)
             if msg['RetCode'] != 0:
+                _thingclients.pop(self._identity)
                 raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
-
         except queue.Empty:
+            _thingclients.pop(self._identity)
             raise UIoTEdgeTimeoutException
         except Exception as e:
+            _thingclients.pop(self._identity)
             raise e
+
+        self.online = True
 
     def register(self, product_secret):
         request_id = _generate_request_id()
@@ -215,18 +188,45 @@ class ThingClient(object):
         except Exception as e:
             raise e
 
-    def publish(self, topic, payload, is_cached=False, duration=0):
-        # publish message to message router
+    def _publish_online(self, is_cached=False, duration=0):
+        request_id = _generate_request_id()
+        topic = '/$system/%s/%s/subdev/login' % (
+            self.product_sn, self.device_sn)
         data = {
             'src': 'local',
             'topic': topic,
             'isCatched': is_cached,
             'duration': duration,
-            'payload': payload
+            'payload': {
+                'RequestID': request_id,
+                'Params': [
+                    {
+                        'ProductSN': self.product_sn,
+                        'DeviceSN': self.device_sn
+                    }
+                ]
+            }
         }
+
         bty = json.dumps(data)
         _natsclient.publish(subject='edge.router.'+_dirver_id,
                             payload=bty.encode('utf-8'))
+        _cache.set(request_id, self._identity)  # add cache for callback
+
+    def publish(self, topic, payload, is_cached=False, duration=0):
+        if self.online:
+            data = {
+                'src': 'local',
+                'topic': topic,
+                'isCatched': is_cached,
+                'duration': duration,
+                'payload': payload
+            }
+            bty = json.dumps(data)
+            _natsclient.publish(subject='edge.router.'+_dirver_id,
+                                payload=bty.encode('utf-8'))
+        else:
+            raise UIoTEdgeDeviceOfflineException
 
 
 class Config(object):
@@ -254,7 +254,7 @@ def _on_message(message):
     # driver message router ot subdevice
 
     payload = str(message.payload, encoding="utf-8")
-    # print(payload)
+    print(payload)
     js = json.loads(payload)
     try:
         topic = js['topic']
@@ -292,11 +292,8 @@ def _on_message(message):
                     sub_dev._login_queue.put(msg)
 
             elif topic.endswith('/subdev/logout_reply') and topic.startswith('/$system/'):
-                request_id = msg['RequestID']
-                if _cache.has(request_id):
-                    identity = _cache.get(request_id)
-                    sub_dev = _thingclients[identity]
-                    sub_dev._logout_queue.put(msg)
+                # do nothing
+                pass
             elif (topic.endswith('/subdev/enable') or topic.endswith('/subdev/disable')) and topic.startswith('/$system/'):
                 try:
                     enable_list = msg['Params']
