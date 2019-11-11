@@ -123,7 +123,6 @@ class ThingClient(object):
             raise e
 
         self.online = True
-        print('-----------', self.online)
 
     def register(self, product_secret, timeout=5):
         request_id = _generate_request_id()
