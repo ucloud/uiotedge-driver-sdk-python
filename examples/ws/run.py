@@ -12,6 +12,11 @@ async def handler(websocket, path):
         productSN = data['productSN']
         deviceSN = data['deviceSN']
 
+        if 'productSN' not in data or 'deviceSN' not in data:
+            await websocket.send('please login first')
+            await websocket.close()
+            return
+
         print('receive connect ', productSN, deviceSN)
 
         async def send_to_websocket(msg):
