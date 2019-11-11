@@ -263,6 +263,7 @@ def _on_message(message):
     payload = str(message.payload, encoding="utf-8")
     # print(payload)
     js = json.loads(payload)
+    sub_dev = None
     try:
         topic = js['topic']
         msg = js['payload']
@@ -316,12 +317,16 @@ def _on_message(message):
 
             # on normal callback
             else:
-                identify = sub_device['ProductSN'] + \
-                    '.'+sub_device['DeviceSN']
-                if identify in _thingclients:
-                    sub_dev = _thingclients[identify]
-                    if sub_dev.on_msg_callback:
-                        sub_dev.on_msg_callback(msg)
+                try:
+                    identify = js['ProductSN'] + \
+                        '.'+js['DeviceSN']
+                    if identify in _thingclients:
+                        sub_dev = _thingclients[identify]
+                        if sub_dev.callback:
+                            sub_dev.callback(msg)
+                except Exception as e:
+                    print('message', js)
+                    print('unknown message content', e)
         else:
             print('unknown message topic')
             return
