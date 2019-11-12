@@ -1,4 +1,4 @@
-from uiotedgethingsdk.thing_client import ThingClient, set_on_topo_change_callback, get_topo
+from uiotedgethingsdk.thing_client import ThingClient, set_on_topo_change_callback, get_topo, set_on_status_change_callback
 from uiotedgethingsdk.thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
 import asyncio
 import websockets
@@ -32,13 +32,8 @@ async def handler(websocket, path):
             print('msg receive:', msg)
             send(msg)
 
-        def on_status_change_callback(msg):
-            print('status change:', msg)
-            send(msg)
-
         client = ThingClient(productSN, deviceSN,
-                             on_msg_callback=on_msg_callback,
-                             on_disable_enable_callback=on_status_change_callback)
+                             on_msg_callback=on_msg_callback)
         client.login()
         await websocket.send("login success")
 
@@ -83,6 +78,7 @@ async def handler(websocket, path):
 
 # set on topo change callback
 set_on_topo_change_callback(lambda x: print('topo get or notify:', x))
+set_on_status_change_callback(lambda x: print('status change:', x))
 
 # start websocket server
 start_server = websockets.serve(handler, "0.0.0.0", 5678)

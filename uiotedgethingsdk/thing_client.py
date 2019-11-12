@@ -36,6 +36,14 @@ def set_on_topo_change_callback(callback):
     _on_topo_change_callback = _device_notify(callback)
 
 
+_on_status_change_callback = None
+
+
+def set_on_status_change_callback(callback):
+    global _on_status_change_callback
+    _on_status_change_callback = _device_notify(callback)
+
+
 def get_topo(is_cached=False, duration=0):
     request_id = _generate_request_id()
     topic = '/$system/%s/%s/subdev/topo/get' % (
@@ -71,22 +79,23 @@ class ThingClient(object):
         self.online = False
 
     def logout(self):
-        request_id = _generate_request_id()
-        offline_message = {
-            'RequestID': request_id,
-            'Params': [
-                {
-                    'ProductSN': self.product_sn,
-                    'DeviceSN': self.device_sn
-                }
-            ]
-        }
-        topic = '/$system/%s/%s/subdev/logout' % (
-            self.product_sn, self.device_sn)
-        self.publish(topic=topic, payload=offline_message)
+        if self.online:
+            request_id = _generate_request_id()
+            offline_message = {
+                'RequestID': request_id,
+                'Params': [
+                    {
+                        'ProductSN': self.product_sn,
+                        'DeviceSN': self.device_sn
+                    }
+                ]
+            }
+            topic = '/$system/%s/%s/subdev/logout' % (
+                self.product_sn, self.device_sn)
+            self._publish_without_login(topic=topic, payload=offline_message)
 
-        self.online = False
-        _thingclients.pop(self._identity)
+            self.online = False
+            _thingclients.pop(self._identity)
 
     def login(self, is_cached=False, duration=0, timeout=5):
         _thingclients[self._identity] = self
@@ -113,11 +122,13 @@ class ThingClient(object):
             # wait for response
             msg = self._login_queue.get(block=True, timeout=timeout)
             if msg['RetCode'] != 0:
-                _thingclients.pop(self._identity)
                 raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
         except queue.Empty:
             _thingclients.pop(self._identity)
             raise UIoTEdgeTimeoutException
+        except UIoTEdgeDriverException as e:
+            _thingclients.pop(self._identity)
+            raise e
         except Exception as e:
             _thingclients.pop(self._identity)
             raise e
@@ -149,6 +160,8 @@ class ThingClient(object):
 
         except queue.Empty:
             raise UIoTEdgeTimeoutException
+        except UIoTEdgeDriverException as e:
+            raise e
         except Exception as e:
             raise e
 
@@ -177,6 +190,8 @@ class ThingClient(object):
 
         except queue.Empty:
             raise UIoTEdgeTimeoutException
+        except UIoTEdgeDriverException as e:
+            raise e
         except Exception as e:
             raise e
 
@@ -204,6 +219,8 @@ class ThingClient(object):
 
         except queue.Empty:
             raise UIoTEdgeTimeoutException
+        except UIoTEdgeDriverException as e:
+            raise e
         except Exception as e:
             raise e
 
