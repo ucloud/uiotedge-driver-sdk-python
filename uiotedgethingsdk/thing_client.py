@@ -91,7 +91,9 @@ class ThingClient(object):
             }
             topic = '/$system/%s/%s/subdev/logout' % (
                 self.product_sn, self.device_sn)
-            self._publish_without_login(topic=topic, payload=offline_message)
+            data = json.dumps(offline_message)
+            self._publish_without_login(
+                topic=topic, payload=bytes(data, encoding='utf-8'))
 
             self.online = False
             _thingclients.pop(self._identity)
@@ -114,8 +116,9 @@ class ThingClient(object):
         }
 
         try:
+            data = json.dumps(login_data)
             self._publish_without_login(
-                topic=topic, payload=login_data, is_cached=is_cached, duration=duration)
+                topic=topic, payload=bytes(data, encoding='utf-8'), is_cached=is_cached, duration=duration)
             _cache.set(request_id, self._identity)  # add cache for callback
 
             # wait for response
@@ -151,7 +154,9 @@ class ThingClient(object):
             self.product_sn, self.device_sn)
 
         try:
-            self._publish_without_login(topic=topic, payload=register_data)
+            data = json.dumps(register_data)
+            self._publish_without_login(
+                topic=topic, payload=bytes(data, encoding='utf-8'))
             _cache.set(request_id, self._identity)  # add cache for callback
 
             msg = self._resgister_queue.get(block=True, timeout=timeout)
@@ -180,7 +185,8 @@ class ThingClient(object):
             self.product_sn, self.device_sn)
 
         try:
-            self._publish_without_login(topic=topic, payload=add_topo_data,
+            data = json.dumps(add_topo_data)
+            self._publish_without_login(topic=topic, payload=bytes(data, encoding='utf-8'),
                                         is_cached=is_cached, duration=duration)
             _cache.set(request_id, self._identity)  # add cache for callback
 
@@ -209,7 +215,8 @@ class ThingClient(object):
         topic = '/$system/%s/%s/subdev/topo/delete' % (
             self.product_sn, self.device_sn)
         try:
-            self._publish_without_login(topic=topic, payload=delete_topo_data,
+            data = json.dumps(delete_topo_data)
+            self._publish_without_login(topic=topic, payload=bytes(data, encoding='utf-8'),
                                         is_cached=is_cached, duration=duration)
             _cache.set(request_id, self._identity)  # add cache for callback
 
@@ -277,7 +284,7 @@ def getConfig():
 def _on_broadcast_message(message):
     # driver message router ot subdevice
     payload = str(message.payload, encoding="utf-8")
-    # print(payload)
+    print("broadcast message: ", payload)
     try:
         js = json.loads(payload)
         sub_dev = None
@@ -340,8 +347,8 @@ def _on_broadcast_message(message):
 def _on_message(message):
     # driver message router ot subdevice
     payload = str(message.payload, encoding="utf-8")
+    print("normal message: ", payload)
     js = json.loads(payload)
-    sub_dev = None
     try:
         msg = js['payload']
         identify = js['productSN'] + \
