@@ -66,7 +66,7 @@ def get_topo(is_cached=False, duration=0):
 
 
 class ThingClient(object):
-    def __init__(self, product_sn, device_sn, on_msg_callback=None, on_disable_enable_callback=None):
+    def __init__(self, product_sn, device_sn, on_msg_callback=None):
         self.device_sn = device_sn
         self.product_sn = product_sn
         self.callback = on_msg_callback
@@ -75,7 +75,6 @@ class ThingClient(object):
         self._topo_add_queue = queue.Queue()
         self._topo_delete_queue = queue.Queue()
         self._resgister_queue = queue.Queue()
-        self.status_callback = on_disable_enable_callback
         self.online = False
 
     def logout(self):
@@ -123,6 +122,7 @@ class ThingClient(object):
             msg = self._login_queue.get(block=True, timeout=timeout)
             if msg['RetCode'] != 0:
                 raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
+
         except queue.Empty:
             _thingclients.pop(self._identity)
             raise UIoTEdgeTimeoutException
@@ -319,19 +319,14 @@ def _on_message(message):
             elif topic.endswith('/subdev/logout_reply') and topic.startswith('/$system/'):
                 # do nothing
                 pass
-            elif (topic.endswith('/subdev/enable') or topic.endswith('/subdev/disable')) and topic.startswith('/$system/'):
-                try:
-                    enable_list = msg['Params']
-                    for sub_device in enable_list:
-                        identify = sub_device['ProductSN'] + \
-                            '.'+sub_device['DeviceSN']
-                        if identify in _thingclients:
-                            sub_dev = _thingclients[identify]
-                            if sub_dev.status_callback:
-                                sub_dev.status_callback(msg)
-                except Exception as e:
-                    print(e)
-
+            elif topic.endswith('/subdev/enable') and topic.startswith('/$system/'):
+                if _on_status_change_callback:
+                    msg['Status'] = 'enable'
+                    _on_status_change_callback.run(msg)
+            elif topic.endswith('/subdev/disable') and topic.startswith('/$system/'):
+                if _on_status_change_callback:
+                    msg['Status'] = 'disable'
+                    _on_status_change_callback.run(msg)
             # on normal callback
             else:
                 try:
