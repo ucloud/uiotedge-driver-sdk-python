@@ -274,14 +274,13 @@ def getConfig():
     return json.dumps(config)
 
 
-def _on_message(message):
+def _on_broadcast_message(message):
     # driver message router ot subdevice
-
     payload = str(message.payload, encoding="utf-8")
     # print(payload)
-    js = json.loads(payload)
-    sub_dev = None
     try:
+        js = json.loads(payload)
+        sub_dev = None
         topic = js['topic']
         msg = js['payload']
         if isinstance(topic, str):
@@ -329,16 +328,28 @@ def _on_message(message):
                     _on_status_change_callback.run(msg)
             # on normal callback
             else:
-                try:
-                    identify = js['ProductSN'] + \
-                        '.'+js['DeviceSN']
-                    if identify in _thingclients:
-                        sub_dev = _thingclients[identify]
-                        if sub_dev.callback:
-                            sub_dev.callback(msg)
-                except Exception as e:
-                    print('message', js)
-                    print('unknown message content', e)
+                print('unknown message content', js)
+        else:
+            print('unknown message topic')
+            return
+
+    except Exception as e:
+        print(e)
+
+
+def _on_message(message):
+    # driver message router ot subdevice
+    payload = str(message.payload, encoding="utf-8")
+    js = json.loads(payload)
+    sub_dev = None
+    try:
+        msg = js['payload']
+        identify = js['productSN'] + \
+            '.'+js['deviceSN']
+        if identify in _thingclients:
+            sub_dev = _thingclients[identify]
+            if sub_dev.callback:
+                sub_dev.callback(msg)
         else:
             print('unknown message topic')
             return
@@ -360,6 +371,9 @@ print("dirver_id: ", _dirver_id)
 
 _natsclient.subscribe(subject='edge.local.'+_dirver_id,
                       callback=_on_message)
+
+_natsclient.subscribe(subject='edge.local.broadcast',
+                      callback=_on_broadcast_message)
 
 
 def _wait():
