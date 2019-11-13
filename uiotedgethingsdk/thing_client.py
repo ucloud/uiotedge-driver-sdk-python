@@ -48,7 +48,7 @@ def set_on_status_change_callback(callback):
 def get_topo(is_cached=False, duration=0):
     request_id = _generate_request_id()
     topic = '/$system/%s/%s/subdev/topo/get' % (
-        "0001", "123456")
+        _generate_request_id(), "123456")
 
     get_topo = {
         'RequestID': request_id,
