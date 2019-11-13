@@ -283,6 +283,7 @@ def _on_broadcast_message(message):
         topic = js['topic']
 
         msg = json.loads(str(base64.b64decode(js['payload']), "utf-8"))
+        print("broadcast message payload: ", msg)
 
         sub_dev = None
         if isinstance(topic, str):
@@ -345,9 +346,11 @@ def _on_message(message):
     print("normal message: ", payload)
     js = json.loads(payload)
     try:
-        msg = js['payload']
         identify = js['productSN'] + \
             '.'+js['deviceSN']
+
+        msg = base64.b64decode(js['payload'])
+        print("broadcast message payload: ", str(msg, 'utf-8'))
         if identify in _thingclients:
             sub_dev = _thingclients[identify]
             if sub_dev.callback:
