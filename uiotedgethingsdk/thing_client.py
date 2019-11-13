@@ -51,17 +51,10 @@ def get_topo(is_cached=False, duration=0):
         "0001", "123456")
 
     get_topo = {
-        'src': 'local',
-        'topic': topic,
-        'isCatched': is_cached,
-        'duration': duration,
-        'payload': {
-            'RequestID': request_id,
-            "Params": []
-        }
-
+        'RequestID': request_id,
+        "Params": []
     }
-    _publish(get_topo, is_cached=is_cached, duration=duration)
+    _publish(topic, get_topo, is_cached=is_cached, duration=duration)
 
 
 def add_topo(product_sn, device_sn, is_cached=False, duration=0):
@@ -70,22 +63,15 @@ def add_topo(product_sn, device_sn, is_cached=False, duration=0):
         product_sn, device_sn)
 
     add_topo = {
-        'src': 'local',
-        'topic': topic,
-        'isCatched': is_cached,
-        'duration': duration,
-        'payload': {
-            'RequestID': request_id,
-            "Params": [
-                {
-                    'ProductSN': product_sn,
-                    'DeviceSN': device_sn
-                }
-            ]
-        }
-
+        'RequestID': request_id,
+        "Params": [
+            {
+                'ProductSN': product_sn,
+                'DeviceSN': device_sn
+            }
+        ]
     }
-    _publish(add_topo, is_cached=is_cached, duration=duration)
+    _publish(topic, add_topo, is_cached=is_cached, duration=duration)
 
 
 def delete_topo(product_sn, device_sn, is_cached=False, duration=0):
@@ -94,26 +80,27 @@ def delete_topo(product_sn, device_sn, is_cached=False, duration=0):
         product_sn, device_sn)
 
     delete_topo = {
+        'RequestID': request_id,
+        "Params": [
+            {
+                'ProductSN': product_sn,
+                'DeviceSN': device_sn
+            }
+        ]
+    }
+    _publish(topic, delete_topo, is_cached=is_cached, duration=duration)
+
+
+def _publish(topic, payload, is_cached=False, duration=0):
+    payload_encode = base64.b64encode(payload)
+    data = {
         'src': 'local',
         'topic': topic,
         'isCatched': is_cached,
         'duration': duration,
-        'payload': {
-            'RequestID': request_id,
-            "Params": [
-                {
-                    'ProductSN': product_sn,
-                    'DeviceSN': device_sn
-                }
-            ]
-        }
-
+        'payload': str(payload_encode, 'utf-8')
     }
-    _publish(delete_topo, is_cached=is_cached, duration=duration)
-
-
-def _publish(payload, is_cached=False, duration=0):
-    bty = json.dumps(payload)
+    bty = json.dumps(data)
     _natsclient.publish(subject='edge.router.'+_dirver_id,
                         payload=bty.encode('utf-8'))
 
@@ -130,7 +117,7 @@ class ThingClient(object):
         self._resgister_queue = queue.Queue()
         self.online = False
 
-    def logout(self):
+    def logout(self, is_cached=False, duration=0):
         if self.online:
             request_id = _generate_request_id()
             offline_message = {
@@ -145,8 +132,8 @@ class ThingClient(object):
             topic = '/$system/%s/%s/subdev/logout' % (
                 self.product_sn, self.device_sn)
             data = json.dumps(offline_message)
-            self._publish(
-                topic=topic, payload=data.encode('utf-8'))
+            _publish(topic=topic, payload=data.encode('utf-8'),
+                     is_cached=is_cached, duration=duration)
 
             self.online = False
             _thingclients.pop(self._identity)
@@ -170,8 +157,8 @@ class ThingClient(object):
 
         try:
             data = json.dumps(login_data)
-            self._publish(
-                topic=topic, payload=data.encode('utf-8'), is_cached=is_cached, duration=duration)
+            _publish(topic=topic, payload=data.encode('utf-8'),
+                     is_cached=is_cached, duration=duration)
             _cache.set(request_id, self._identity)  # add cache for callback
 
             # wait for response
@@ -191,7 +178,7 @@ class ThingClient(object):
 
         self.online = True
 
-    def register(self, product_secret, timeout=5):
+    def register(self, product_secret, is_cached=False, duration=0, timeout=5):
         request_id = _generate_request_id()
         register_data = {
             'RequestID': request_id,
@@ -208,8 +195,8 @@ class ThingClient(object):
 
         try:
             data = json.dumps(register_data)
-            self._publish(
-                topic=topic, payload=data.encode('utf-8'))
+            _publish(topic=topic, payload=data.encode('utf-8'),
+                     is_cached=is_cached, duration=duration)
             _cache.set(request_id, self._identity)  # add cache for callback
 
             msg = self._resgister_queue.get(block=True, timeout=timeout)
@@ -239,8 +226,8 @@ class ThingClient(object):
 
         try:
             data = json.dumps(add_topo_data)
-            self._publish(topic=topic, payload=data.encode('utf-8'),
-                          is_cached=is_cached, duration=duration)
+            _publish(topic=topic, payload=data.encode('utf-8'),
+                     is_cached=is_cached, duration=duration)
             _cache.set(request_id, self._identity)  # add cache for callback
 
             msg = self._topo_add_queue.get(block=True, timeout=timeout)
@@ -269,8 +256,8 @@ class ThingClient(object):
             self.product_sn, self.device_sn)
         try:
             data = json.dumps(delete_topo_data)
-            self._publish(topic=topic, payload=data.encode('utf-8'),
-                          is_cached=is_cached, duration=duration)
+            _publish(topic=topic, payload=data.encode('utf-8'),
+                     is_cached=is_cached, duration=duration)
             _cache.set(request_id, self._identity)  # add cache for callback
 
             msg = self._topo_delete_queue.get(block=True, timeout=timeout)
@@ -284,23 +271,10 @@ class ThingClient(object):
         except Exception as e:
             raise e
 
-    def _publish(self, topic: str, payload: b'', is_cached=False, duration=0):
-        payload_encode = base64.b64encode(payload)
-        data = {
-            'src': 'local',
-            'topic': topic,
-            'isCatched': is_cached,
-            'duration': duration,
-            'payload': str(payload_encode, 'utf-8')
-        }
-        bty = json.dumps(data)
-        _natsclient.publish(subject='edge.router.'+_dirver_id,
-                            payload=bty.encode('utf-8'))
-
     def publish(self, topic: str, payload: b'', is_cached=False, duration=0):
         if self.online:
-            self._publish(topic, payload, is_cached=is_cached,
-                          duration=duration)
+            _publish(topic, payload, is_cached=is_cached,
+                     duration=duration)
         else:
             raise UIoTEdgeDeviceOfflineException
 
