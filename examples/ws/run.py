@@ -55,7 +55,15 @@ async def handler(websocket, path):
                     elif action == 'get_topo':
                         get_topo()
                 elif 'topic' in data and 'payload' in data:
-                    client.publish(data['topic'], data['payload'])
+                    payload = data['payload']
+                    if isinstance(payload, dict):
+                        byts = json.dumps(payload)
+                        client.publish(
+                            topic=data['topic'], payload=byts.encode('utf-8'))
+                    elif isinstance(payload, str):
+                        byts = payload.encode('utf-8')
+                        client.publish(topic=data['topic'], payload=byts)
+
                 else:
                     print('unknown message')
                     continue
