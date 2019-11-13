@@ -3,6 +3,7 @@ import random
 import string
 import threading
 import queue
+import base64
 from pynats import NATSClient
 from cacheout import Cache
 from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
@@ -92,8 +93,8 @@ class ThingClient(object):
             topic = '/$system/%s/%s/subdev/logout' % (
                 self.product_sn, self.device_sn)
             data = json.dumps(offline_message)
-            self._publish_without_login(
-                topic=topic, payload=data)
+            self._publish(
+                topic=topic, payload=data.encode('utf-8'))
 
             self.online = False
             _thingclients.pop(self._identity)
@@ -117,8 +118,8 @@ class ThingClient(object):
 
         try:
             data = json.dumps(login_data)
-            self._publish_without_login(
-                topic=topic, payload=data, is_cached=is_cached, duration=duration)
+            self._publish(
+                topic=topic, payload=data.encode('utf-8'), is_cached=is_cached, duration=duration)
             _cache.set(request_id, self._identity)  # add cache for callback
 
             # wait for response
@@ -155,8 +156,8 @@ class ThingClient(object):
 
         try:
             data = json.dumps(register_data)
-            self._publish_without_login(
-                topic=topic, payload=data)
+            self._publish(
+                topic=topic, payload=data.encode('utf-8'))
             _cache.set(request_id, self._identity)  # add cache for callback
 
             msg = self._resgister_queue.get(block=True, timeout=timeout)
@@ -186,8 +187,8 @@ class ThingClient(object):
 
         try:
             data = json.dumps(add_topo_data)
-            self._publish_without_login(topic=topic, payload=data,
-                                        is_cached=is_cached, duration=duration)
+            self._publish(topic=topic, payload=data.encode('utf-8'),
+                          is_cached=is_cached, duration=duration)
             _cache.set(request_id, self._identity)  # add cache for callback
 
             msg = self._topo_add_queue.get(block=True, timeout=timeout)
@@ -216,8 +217,8 @@ class ThingClient(object):
             self.product_sn, self.device_sn)
         try:
             data = json.dumps(delete_topo_data)
-            self._publish_without_login(topic=topic, payload=data,
-                                        is_cached=is_cached, duration=duration)
+            self._publish(topic=topic, payload=data.encode('utf-8'),
+                          is_cached=is_cached, duration=duration)
             _cache.set(request_id, self._identity)  # add cache for callback
 
             msg = self._topo_delete_queue.get(block=True, timeout=timeout)
@@ -231,30 +232,23 @@ class ThingClient(object):
         except Exception as e:
             raise e
 
-    def _publish_without_login(self, topic: str, payload: str, is_cached=False, duration=0):
+    def _publish(self, topic: str, payload: b'', is_cached=False, duration=0):
+        payload_encode = base64.b64encode(payload)
         data = {
             'src': 'local',
             'topic': topic,
             'isCatched': is_cached,
             'duration': duration,
-            'payload': payload
+            'payload': str(payload_encode, 'utf-8')
         }
         bty = json.dumps(data)
         _natsclient.publish(subject='edge.router.'+_dirver_id,
                             payload=bty.encode('utf-8'))
 
-    def publish(self, topic, payload: str, is_cached=False, duration=0):
+    def publish(self, topic: str, payload: b'', is_cached=False, duration=0):
         if self.online:
-            data = {
-                'src': 'local',
-                'topic': topic,
-                'isCatched': is_cached,
-                'duration': duration,
-                'payload': payload
-            }
-            bty = json.dumps(data)
-            _natsclient.publish(subject='edge.router.'+_dirver_id,
-                                payload=bty.encode('utf-8'))
+            self._publish(topic, payload, is_cached=is_cached,
+                          duration=duration)
         else:
             raise UIoTEdgeDeviceOfflineException
 
