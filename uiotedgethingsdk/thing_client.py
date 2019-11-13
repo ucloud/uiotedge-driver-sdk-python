@@ -61,7 +61,59 @@ def get_topo(is_cached=False, duration=0):
         }
 
     }
-    bty = json.dumps(get_topo)
+    _publish(get_topo, is_cached=is_cached, duration=duration)
+
+
+def add_topo(product_sn, device_sn, is_cached=False, duration=0):
+    request_id = _generate_request_id()
+    topic = '/$system/%s/%s/subdev/topo/add' % (
+        product_sn, device_sn)
+
+    add_topo = {
+        'src': 'local',
+        'topic': topic,
+        'isCatched': is_cached,
+        'duration': duration,
+        'payload': {
+            'RequestID': request_id,
+            "Params": [
+                {
+                    'ProductSN': product_sn,
+                    'DeviceSN': device_sn
+                }
+            ]
+        }
+
+    }
+    _publish(add_topo, is_cached=is_cached, duration=duration)
+
+
+def delete_topo(product_sn, device_sn, is_cached=False, duration=0):
+    request_id = _generate_request_id()
+    topic = '/$system/%s/%s/subdev/topo/delete' % (
+        product_sn, device_sn)
+
+    delete_topo = {
+        'src': 'local',
+        'topic': topic,
+        'isCatched': is_cached,
+        'duration': duration,
+        'payload': {
+            'RequestID': request_id,
+            "Params": [
+                {
+                    'ProductSN': product_sn,
+                    'DeviceSN': device_sn
+                }
+            ]
+        }
+
+    }
+    _publish(delete_topo, is_cached=is_cached, duration=duration)
+
+
+def _publish(payload, is_cached=False, duration=0):
+    bty = json.dumps(payload)
     _natsclient.publish(subject='edge.router.'+_dirver_id,
                         payload=bty.encode('utf-8'))
 
