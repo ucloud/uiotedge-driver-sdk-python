@@ -286,27 +286,6 @@ class ThingClient(object):
             raise UIoTEdgeDeviceOfflineException
 
 
-class Config(object):
-    def __init__(self, config=None):
-        self.config = config
-
-    def getDriverInfo(self):
-        return _driverInfo
-
-    def getDeviceInfos(self):
-        return _deviceInfos
-
-
-def getConfig():
-    if _driverInfo is None:
-        config = {"deviceList": _deviceInfos}
-    else:
-        config = {
-            "config": _driverInfo,
-            "deviceList": _deviceInfos}
-    return json.dumps(config)
-
-
 def _on_broadcast_message(message):
     # driver message router ot subdevice
     payload = str(message.payload, encoding="utf-8")
@@ -394,6 +373,27 @@ def _on_message(message):
 
     except Exception as e:
         print(e)
+
+
+class Config(object):
+    def __init__(self, config=None):
+        self.config = config
+
+    def getDriverInfo(self):
+        return _driverInfo
+
+    def getDeviceInfos(self):
+        return _deviceInfos
+
+
+def getConfig():
+    if _driverInfo is None:
+        config = {"deviceList": _deviceInfos}
+    else:
+        config = {
+            "config": _driverInfo,
+            "deviceList": _deviceInfos}
+    return json.dumps(config)
 
 
 # get Config
