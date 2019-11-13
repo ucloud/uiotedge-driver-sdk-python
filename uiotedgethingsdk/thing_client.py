@@ -54,7 +54,9 @@ def get_topo(is_cached=False, duration=0):
         'RequestID': request_id,
         "Params": []
     }
-    _publish(topic, get_topo, is_cached=is_cached, duration=duration)
+    data = json.dumps(get_topo)
+    _publish(topic=topic, payload=data.encode('utf-8'),
+             is_cached=is_cached, duration=duration)
 
 
 def add_topo(product_sn, device_sn, is_cached=False, duration=0):
@@ -71,7 +73,9 @@ def add_topo(product_sn, device_sn, is_cached=False, duration=0):
             }
         ]
     }
-    _publish(topic, add_topo, is_cached=is_cached, duration=duration)
+    data = json.dumps(add_topo)
+    _publish(topic=topic, payload=data.encode('utf-8'),
+             is_cached=is_cached, duration=duration)
 
 
 def delete_topo(product_sn, device_sn, is_cached=False, duration=0):
@@ -88,10 +92,12 @@ def delete_topo(product_sn, device_sn, is_cached=False, duration=0):
             }
         ]
     }
-    _publish(topic, delete_topo, is_cached=is_cached, duration=duration)
+    data = json.dumps(delete_topo)
+    _publish(topic=topic, payload=data.encode('utf-8'),
+             is_cached=is_cached, duration=duration)
 
 
-def _publish(topic, payload, is_cached=False, duration=0):
+def _publish(topic: str, payload: b'', is_cached=False, duration=0):
     payload_encode = base64.b64encode(payload)
     data = {
         'src': 'local',
