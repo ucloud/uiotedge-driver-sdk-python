@@ -4,6 +4,7 @@ import string
 import threading
 import queue
 import base64
+import os
 from pynats import NATSClient
 from cacheout import Cache
 from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
@@ -396,7 +397,9 @@ def _on_message(message):
 
 
 # get Config
-with open("/edge/config/config.json", 'r') as load_f:
+_config_path = os.environ.get(
+    'UIOT_DRIVER_CONFI_PATH') or '/edge/config/config.json'
+with open(_config_path, 'r') as load_f:
     load_dict = json.load(load_f)
     print(load_dict)
     _deviceInfos = load_dict['deviceList']
