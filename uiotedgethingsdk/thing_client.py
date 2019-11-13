@@ -280,9 +280,11 @@ def _on_broadcast_message(message):
     print("broadcast message: ", payload)
     try:
         js = json.loads(payload)
-        sub_dev = None
         topic = js['topic']
-        msg = js['payload']
+
+        msg = json.loads(str(base64.b64decode(js['payload']), "utf-8"))
+
+        sub_dev = None
         if isinstance(topic, str):
             # on topo change callback
             if (topic.endswith("/subdev/topo/notify/add") or topic.endswith("/subdev/topo/notify/delete") or topic.endswith('/subdev/topo/get_reply')) and topic.startswith("/$system/"):
