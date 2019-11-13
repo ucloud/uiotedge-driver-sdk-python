@@ -1,4 +1,4 @@
-from uiotedgethingsdk.thing_client import ThingClient, set_on_topo_change_callback, get_topo, set_on_status_change_callback
+from uiotedgethingsdk.thing_client import ThingAccessClient, set_on_topo_change_callback, get_topo, set_on_status_change_callback
 from uiotedgethingsdk.thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
 import asyncio
 import websockets
@@ -32,8 +32,8 @@ async def handler(websocket, path):
             print('msg receive:', msg)
             send(msg)
 
-        client = ThingClient(productSN, deviceSN,
-                             on_msg_callback=on_msg_callback)
+        client = ThingAccessClient(productSN, deviceSN,
+                                   on_msg_callback=on_msg_callback)
         client.login()
         await websocket.send("login success")
 

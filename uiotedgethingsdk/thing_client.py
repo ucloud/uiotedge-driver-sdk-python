@@ -113,7 +113,7 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
                         payload=bty.encode('utf-8'))
 
 
-class ThingClient(object):
+class ThingAccessClient(object):
     def __init__(self, product_sn, device_sn, on_msg_callback=None):
         self.device_sn = device_sn
         self.product_sn = product_sn
