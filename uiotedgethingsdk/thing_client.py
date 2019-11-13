@@ -11,7 +11,8 @@ from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, 
 
 _deviceInfos = []
 _driverInfo = None
-_nats_url = 'tcp://106.75.237.117:4222'
+_nats_url = os.environ.get(
+    'UIOT_EDGE_LINK_NATS_URL') or 'tcp://106.75.237.117:4222'
 _thingclients = {}
 _cache = Cache(maxsize=1024, ttl=300)
 _natsclient = NATSClient(url=_nats_url)
@@ -398,7 +399,7 @@ def getConfig():
 
 # get Config
 _config_path = os.environ.get(
-    'UIOT_DRIVER_CONFI_PATH') or '/edge/config/config.json'
+    'UIOT_EDGE_LINK_DRIVER_PATH') or '/edge/config/config.json'
 with open(_config_path, 'r') as load_f:
     load_dict = json.load(load_f)
     print(load_dict)
