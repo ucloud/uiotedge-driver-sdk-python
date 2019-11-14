@@ -51,8 +51,6 @@ async def handler(websocket, path):
                     elif action == "logout":
                         client.logout()
                         return
-                    elif action == "register":
-                        client.register('12345678')
                     elif action == 'get_topo':
                         get_topo()
                 elif 'topic' in data and 'payload' in data:
