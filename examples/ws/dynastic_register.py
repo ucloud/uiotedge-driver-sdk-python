@@ -1,4 +1,4 @@
-from uiotedgethingsdk.thing_client import ThingAccessClient, set_on_topo_change_callback, get_topo, set_on_status_change_callback
+from uiotedgethingsdk.thing_client import ThingAccessClient, set_on_topo_change_callback, get_topo, set_on_status_change_callback, register_device
 from uiotedgethingsdk.thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
 import asyncio
 import websockets
@@ -10,15 +10,19 @@ async def handler(websocket, path):
         login = await websocket.recv()
         data = json.loads(login)
 
-        if 'productSN' not in data or 'deviceSN' not in data:
-            await websocket.send('please login first')
+        if 'productSN' not in data or 'deviceSN' not in data or 'secret' not in data:
+            await websocket.send('please input productSN, deviceSN, secret ....')
             await websocket.close()
             return
 
-        productSN = data['productSN']
-        deviceSN = data['deviceSN']
+        product_sn = data['productSN']
+        device_sn = data['deviceSN']
+        secret = data['secret']
 
-        print('receive connect ', productSN, deviceSN)
+        print('start register ', product_sn, device_sn)
+        register_device(product_sn, device_sn, secret)
+
+        print('register success')
 
         async def send_to_websocket(msg):
             await websocket.send(msg)
@@ -33,7 +37,8 @@ async def handler(websocket, path):
             print('msg receive:', msg)
             send(msg)
 
-        client = ThingAccessClient(productSN, deviceSN,
+        print('start login')
+        client = ThingAccessClient(product_sn, device_sn,
                                    on_msg_callback=on_msg_callback)
         client.login()
         await websocket.send("login success")
@@ -51,8 +56,6 @@ async def handler(websocket, path):
                     elif action == "logout":
                         client.logout()
                         return
-                    elif action == "register":
-                        client.register('12345678')
                     elif action == 'get_topo':
                         get_topo()
                 elif 'topic' in data and 'payload' in data:

@@ -14,6 +14,7 @@ _driverInfo = None
 _nats_url = os.environ.get(
     'UIOT_EDGE_LINK_NATS_URL') or 'tcp://106.75.237.117:4222'
 _thingclients = {}
+_register_queue_map = {}
 _cache = Cache(maxsize=1024, ttl=300)
 _natsclient = NATSClient(url=_nats_url)
 _natsclient.connect()
@@ -97,6 +98,42 @@ def delete_topo(product_sn, device_sn, is_cached=False, duration=0):
     data = json.dumps(delete_topo)
     _publish(topic=topic, payload=data.encode('utf-8'),
              is_cached=is_cached, duration=duration)
+
+
+def register_device(product_sn, device_sn, product_secret, is_cached=False, duration=0, timeout=5):
+    request_id = _generate_request_id()
+    register_data = {
+        'RequestID': request_id,
+        "Params": [
+            {
+                'ProductSN': product_sn,
+                'DeviceSN': device_sn,
+                'ProductSecret': product_secret
+            }
+        ]
+    }
+    topic = '/$system/%s/%s/subdev/register' % (
+        product_sn, device_sn)
+
+    try:
+        data = json.dumps(register_data)
+        _publish(topic=topic, payload=data.encode('utf-8'),
+                 is_cached=is_cached, duration=duration)
+        q = queue.Queue()
+        _register_queue_map[request_id] = q
+
+        msg = q.get(block=True, timeout=timeout)
+        if msg['RetCode'] != 0:
+            raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
+
+    except queue.Empty:
+        raise UIoTEdgeTimeoutException
+    except UIoTEdgeDriverException as e:
+        raise e
+    except Exception as e:
+        raise e
+    finally:
+        _register_queue_map.pop(request_id)
 
 
 def _publish(topic: str, payload: b'', is_cached=False, duration=0):
@@ -185,38 +222,6 @@ class ThingAccessClient(object):
             raise e
 
         self.online = True
-
-    def register(self, product_secret, is_cached=False, duration=0, timeout=5):
-        request_id = _generate_request_id()
-        register_data = {
-            'RequestID': request_id,
-            "Params": [
-                {
-                    'ProductSN': self.product_sn,
-                    'DeviceSN': self.device_sn,
-                    'ProductSecret': product_secret
-                }
-            ]
-        }
-        topic = '/$system/%s/%s/subdev/register' % (
-            self.product_sn, self.device_sn)
-
-        try:
-            data = json.dumps(register_data)
-            _publish(topic=topic, payload=data.encode('utf-8'),
-                     is_cached=is_cached, duration=duration)
-            _cache.set(request_id, self._identity)  # add cache for callback
-
-            msg = self._resgister_queue.get(block=True, timeout=timeout)
-            if msg['RetCode'] != 0:
-                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
-
-        except queue.Empty:
-            raise UIoTEdgeTimeoutException
-        except UIoTEdgeDriverException as e:
-            raise e
-        except Exception as e:
-            raise e
 
     def add_topo(self, is_cached=False, duration=0, timeout=5):
         request_id = _generate_request_id()
@@ -342,6 +347,11 @@ def _on_broadcast_message(message):
                 if _on_status_change_callback:
                     msg['Status'] = 'disable'
                     _on_status_change_callback.run(msg)
+            elif topic.endswith('/subdev/register_reply') and topic.startswith('/$system/'):
+                request_id = msg['RequestID']
+                if request_id in _register_queue_map:
+                    q = _register_queue_map[request_id]
+                    q.put(msg)
             # on normal callback
             else:
                 print('unknown message content', js)
