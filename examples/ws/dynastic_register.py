@@ -84,9 +84,10 @@ async def handler(websocket, path):
     except Exception as e:
         print('websocket error', e)
     finally:
-        client.logout()
+        if client:
+            client.logout()
         await websocket.close()
-        print('connect closed .', deviceSN)
+        print('connect closed .', device_sn)
 
 # set on topo change callback
 set_on_topo_change_callback(lambda x: print('topo get or notify:', x))
