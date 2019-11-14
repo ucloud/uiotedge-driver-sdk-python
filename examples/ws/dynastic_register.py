@@ -21,9 +21,11 @@ async def handler(websocket, path):
 
         print('start register ', product_sn, device_sn)
         register_device(product_sn, device_sn, secret)
-        add_topo(product_sn, device_sn)
-
         print('register success')
+
+        print('start add topo success')
+        add_topo(product_sn, device_sn)
+        print('add topo success')
 
         async def send_to_websocket(msg):
             await websocket.send(msg)
