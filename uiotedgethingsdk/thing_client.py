@@ -156,7 +156,7 @@ class ThingAccessClient(object):
         self.product_sn = product_sn
         self.callback = on_msg_callback
         self._identity = self.product_sn+'.'+self.device_sn
-        self._login_queue = queue.Queue()
+        # self._login_queue = queue.Queue()
         self._topo_add_queue = queue.Queue()
         self._topo_delete_queue = queue.Queue()
         self._resgister_queue = queue.Queue()
@@ -185,6 +185,7 @@ class ThingAccessClient(object):
 
     def login(self, is_cached=False, duration=0, timeout=5):
         _thingclients[self._identity] = self
+        self.online = True
 
         request_id = _generate_request_id()
         topic = '/$system/%s/%s/subdev/login' % (
@@ -200,28 +201,29 @@ class ThingAccessClient(object):
             ]
         }
 
-        try:
-            data = json.dumps(login_data)
-            _publish(topic=topic, payload=data.encode('utf-8'),
-                     is_cached=is_cached, duration=duration)
-            _cache.set(request_id, self._identity)  # add cache for callback
+        data = json.dumps(login_data)
+        _publish(topic=topic, payload=data.encode('utf-8'),
+                 is_cached=is_cached, duration=duration)
+        # try:
+        #     data = json.dumps(login_data)
+        #     _publish(topic=topic, payload=data.encode('utf-8'),
+        #              is_cached=is_cached, duration=duration)
+        #     _cache.set(request_id, self._identity)  # add cache for callback
 
-            # wait for response
-            msg = self._login_queue.get(block=True, timeout=timeout)
-            if msg['RetCode'] != 0:
-                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
+        #     # wait for response
+        #     msg = self._login_queue.get(block=True, timeout=timeout)
+        #     if msg['RetCode'] != 0:
+        #         raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
 
-        except queue.Empty:
-            _thingclients.pop(self._identity)
-            raise UIoTEdgeTimeoutException
-        except UIoTEdgeDriverException as e:
-            _thingclients.pop(self._identity)
-            raise e
-        except Exception as e:
-            _thingclients.pop(self._identity)
-            raise e
-
-        self.online = True
+        # except queue.Empty:
+        #     _thingclients.pop(self._identity)
+        #     raise UIoTEdgeTimeoutException
+        # except UIoTEdgeDriverException as e:
+        #     _thingclients.pop(self._identity)
+        #     raise e
+        # except Exception as e:
+        #     _thingclients.pop(self._identity)
+        #     raise e
 
     def add_topo(self, is_cached=False, duration=0, timeout=5):
         request_id = _generate_request_id()
@@ -330,11 +332,12 @@ def _on_broadcast_message(message):
 
             # on login and logout
             elif topic.endswith('/subdev/login_reply') and topic.startswith('/$system/'):
-                request_id = msg['RequestID']
-                if _cache.has(request_id):
-                    identity = _cache.get(request_id)
-                    sub_dev = _thingclients[identity]
-                    sub_dev._login_queue.put(msg)
+                pass
+                # request_id = msg['RequestID']
+                # if _cache.has(request_id):
+                #     identity = _cache.get(request_id)
+                #     sub_dev = _thingclients[identity]
+                #     sub_dev._login_queue.put(msg)
 
             elif topic.endswith('/subdev/logout_reply') and topic.startswith('/$system/'):
                 # do nothing
