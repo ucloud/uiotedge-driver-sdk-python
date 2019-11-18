@@ -420,7 +420,8 @@ with open(_config_path, 'r') as load_f:
     _driverInfo = load_dict['driverInfo']
 
 # subscribe message from router
-_dirver_id = ''.join(random.sample(string.ascii_letters + string.digits, 16))
+_dirver_id = ''.join(random.sample(
+    string.ascii_letters + string.digits, 16)).lower()
 print("dirver_id: ", _dirver_id)
 
 _natsclient.subscribe(subject='edge.local.'+_dirver_id,
