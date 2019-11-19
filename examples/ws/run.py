@@ -35,7 +35,7 @@ async def handler(websocket, path):
 
         client = ThingAccessClient(productSN, deviceSN,
                                    on_msg_callback=on_msg_callback)
-        client.login()
+        client.login(is_cached=True, duration=30)
         await websocket.send("login success")
 
         async for message in websocket:
@@ -45,23 +45,24 @@ async def handler(websocket, path):
                 if 'action' in data:
                     action = data['action']
                     if action == 'add_topo':
-                        client.add_topo()
+                        client.add_topo(is_cached=True, duration=30)
                     elif action == 'delete_topo':
-                        client.delete_topo()
+                        client.delete_topo(is_cached=True, duration=30)
                     elif action == "logout":
-                        client.logout()
+                        client.logout(is_cached=True, duration=30)
                         return
                     elif action == 'get_topo':
-                        get_topo()
+                        get_topo(is_cached=True, duration=30)
                 elif 'topic' in data and 'payload' in data:
                     payload = data['payload']
                     if isinstance(payload, dict):
                         byts = json.dumps(payload)
                         client.publish(
-                            topic=data['topic'], payload=byts.encode('utf-8'))
+                            topic=data['topic'], payload=byts.encode('utf-8'), is_cached=True, duration=30)
                     elif isinstance(payload, str):
                         byts = payload.encode('utf-8')
-                        client.publish(topic=data['topic'], payload=byts)
+                        client.publish(
+                            topic=data['topic'], payload=byts, is_cached=True, duration=30)
 
                 else:
                     print('unknown message')
