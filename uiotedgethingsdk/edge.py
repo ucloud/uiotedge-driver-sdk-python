@@ -240,7 +240,7 @@ def device_login(product_sn, device_sn, is_cached=False, duration=0):
 
 def device_logout(product_sn, device_sn, is_cached=False, duration=0):
     request_id = _generate_request_id()
-    topic = '/$system/%s/%s/subdev/login' % (
+    topic = '/$system/%s/%s/subdev/logout' % (
         product_sn, device_sn)
 
     device_logout_msg = {
