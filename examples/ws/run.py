@@ -1,4 +1,5 @@
-from uiotedgethingsdk.thing_client import ThingAccessClient, set_on_topo_change_callback, get_topo, set_on_status_change_callback
+from uiotedgethingsdk.edge import set_on_topo_change_callback, add_topo, delete_topo, get_topo, set_on_status_change_callback
+from uiotedgethingsdk.thing_client import ThingAccessClient
 from uiotedgethingsdk.thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
 import asyncio
 import websockets
@@ -45,14 +46,14 @@ async def handler(websocket, path):
                 if 'action' in data:
                     action = data['action']
                     if action == 'add_topo':
-                        client.add_topo(is_cached=True, duration=30)
+                        add_topo(client.product_sn, client.device_sn)
                     elif action == 'delete_topo':
-                        client.delete_topo(is_cached=True, duration=30)
+                        delete_topo(client.product_sn, client.device_sn)
                     elif action == "logout":
                         client.logout(is_cached=True, duration=30)
                         return
                     elif action == 'get_topo':
-                        get_topo(is_cached=True, duration=30)
+                        get_topo()
                 elif 'topic' in data and 'payload' in data:
                     payload = data['payload']
                     if isinstance(payload, dict):

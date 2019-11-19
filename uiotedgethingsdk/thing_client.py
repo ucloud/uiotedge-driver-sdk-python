@@ -7,147 +7,17 @@ import base64
 import os
 from pynats import NATSClient
 from cacheout import Cache
+from .edge import send_message, device_login, device_logout, del_connect_map, add_connect_map
 from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
 
 _deviceInfos = []
 _driverInfo = None
-_nats_url = os.environ.get(
-    'UIOT_EDGE_LINK_NATS_URL') or 'tcp://106.75.237.117:4222'
 _thingclients = {}
-_register_queue_map = {}
 _cache = Cache(maxsize=1024, ttl=300)
-_natsclient = NATSClient(url=_nats_url)
-_natsclient.connect()
 
 
 def _generate_request_id():
     return ''.join(random.sample(string.ascii_letters + string.digits, 16))
-
-
-class _device_notify(object):
-    def __init__(self, callback):
-        self.callback = callback
-
-    def run(self, message):
-        self.callback(message)
-
-
-_on_topo_change_callback = None
-
-
-def set_on_topo_change_callback(callback):
-    global _on_topo_change_callback
-    _on_topo_change_callback = _device_notify(callback)
-
-
-_on_status_change_callback = None
-
-
-def set_on_status_change_callback(callback):
-    global _on_status_change_callback
-    _on_status_change_callback = _device_notify(callback)
-
-
-def get_topo(is_cached=False, duration=0):
-    request_id = _generate_request_id()
-    topic = '/$system/%s/%s/subdev/topo/get' % (
-        _generate_request_id(), "123456")
-
-    get_topo = {
-        'RequestID': request_id,
-        "Params": []
-    }
-    data = json.dumps(get_topo)
-    _publish(topic=topic, payload=data.encode('utf-8'),
-             is_cached=is_cached, duration=duration)
-
-
-def add_topo(product_sn, device_sn, is_cached=False, duration=0):
-    request_id = _generate_request_id()
-    topic = '/$system/%s/%s/subdev/topo/add' % (
-        product_sn, device_sn)
-
-    add_topo = {
-        'RequestID': request_id,
-        "Params": [
-            {
-                'ProductSN': product_sn,
-                'DeviceSN': device_sn
-            }
-        ]
-    }
-    data = json.dumps(add_topo)
-    _publish(topic=topic, payload=data.encode('utf-8'),
-             is_cached=is_cached, duration=duration)
-
-
-def delete_topo(product_sn, device_sn, is_cached=False, duration=0):
-    request_id = _generate_request_id()
-    topic = '/$system/%s/%s/subdev/topo/delete' % (
-        product_sn, device_sn)
-
-    delete_topo = {
-        'RequestID': request_id,
-        "Params": [
-            {
-                'ProductSN': product_sn,
-                'DeviceSN': device_sn
-            }
-        ]
-    }
-    data = json.dumps(delete_topo)
-    _publish(topic=topic, payload=data.encode('utf-8'),
-             is_cached=is_cached, duration=duration)
-
-
-def register_device(product_sn, device_sn, product_secret, is_cached=False, duration=0, timeout=5):
-    request_id = _generate_request_id()
-    register_data = {
-        'RequestID': request_id,
-        "Params": [
-            {
-                'ProductSN': product_sn,
-                'DeviceSN': device_sn,
-                'ProductSecret': product_secret
-            }
-        ]
-    }
-    topic = '/$system/%s/%s/subdev/register' % (
-        product_sn, device_sn)
-
-    try:
-        data = json.dumps(register_data)
-        _publish(topic=topic, payload=data.encode('utf-8'),
-                 is_cached=is_cached, duration=duration)
-        q = queue.Queue()
-        _register_queue_map[request_id] = q
-
-        msg = q.get(block=True, timeout=timeout)
-        if msg['RetCode'] != 0:
-            raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
-
-    except queue.Empty:
-        raise UIoTEdgeTimeoutException
-    except UIoTEdgeDriverException as e:
-        raise e
-    except Exception as e:
-        raise e
-    finally:
-        _register_queue_map.pop(request_id)
-
-
-def _publish(topic: str, payload: b'', is_cached=False, duration=0):
-    payload_encode = base64.b64encode(payload)
-    data = {
-        'src': 'local',
-        'topic': topic,
-        'isCatched': is_cached,
-        'duration': duration,
-        'payload': str(payload_encode, 'utf-8')
-    }
-    bty = json.dumps(data)
-    _natsclient.publish(subject='edge.router.'+_dirver_id,
-                        payload=bty.encode('utf-8'))
 
 
 class ThingAccessClient(object):
@@ -156,237 +26,31 @@ class ThingAccessClient(object):
         self.product_sn = product_sn
         self.callback = on_msg_callback
         self._identity = self.product_sn+'.'+self.device_sn
-        # self._login_queue = queue.Queue()
-        self._topo_add_queue = queue.Queue()
-        self._topo_delete_queue = queue.Queue()
-        self._resgister_queue = queue.Queue()
         self.online = False
 
     def logout(self, is_cached=False, duration=0):
         if self.online:
-            request_id = _generate_request_id()
-            offline_message = {
-                'RequestID': request_id,
-                'Params': [
-                    {
-                        'ProductSN': self.product_sn,
-                        'DeviceSN': self.device_sn
-                    }
-                ]
-            }
-            topic = '/$system/%s/%s/subdev/logout' % (
-                self.product_sn, self.device_sn)
-            data = json.dumps(offline_message)
-            _publish(topic=topic, payload=data.encode('utf-8'),
-                     is_cached=is_cached, duration=duration)
+            device_logout(product_sn=self.product_sn,
+                          device_sn=self.device_sn,
+                          is_cached=is_cached, duration=duration)
 
             self.online = False
-            _thingclients.pop(self._identity)
+            del_connect_map(self._identity)
 
-    def login(self, is_cached=False, duration=0, timeout=5):
-        _thingclients[self._identity] = self
+    def login(self, is_cached=False, duration=0):
+        add_connect_map(self._identity, self)
         self.online = True
 
-        request_id = _generate_request_id()
-        topic = '/$system/%s/%s/subdev/login' % (
-            self.product_sn, self.device_sn)
-
-        login_data = {
-            'RequestID': request_id,
-            'Params': [
-                {
-                    'ProductSN': self.product_sn,
-                    'DeviceSN': self.device_sn
-                }
-            ]
-        }
-
-        data = json.dumps(login_data)
-        _publish(topic=topic, payload=data.encode('utf-8'),
-                 is_cached=is_cached, duration=duration)
-        # try:
-        #     data = json.dumps(login_data)
-        #     _publish(topic=topic, payload=data.encode('utf-8'),
-        #              is_cached=is_cached, duration=duration)
-        #     _cache.set(request_id, self._identity)  # add cache for callback
-
-        #     # wait for response
-        #     msg = self._login_queue.get(block=True, timeout=timeout)
-        #     if msg['RetCode'] != 0:
-        #         raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
-
-        # except queue.Empty:
-        #     _thingclients.pop(self._identity)
-        #     raise UIoTEdgeTimeoutException
-        # except UIoTEdgeDriverException as e:
-        #     _thingclients.pop(self._identity)
-        #     raise e
-        # except Exception as e:
-        #     _thingclients.pop(self._identity)
-        #     raise e
-
-    def add_topo(self, is_cached=False, duration=0, timeout=5):
-        request_id = _generate_request_id()
-        add_topo_data = {
-            'RequestID': request_id,
-            "Params": [
-                {
-                    'ProductSN': self.product_sn,
-                    'DeviceSN': self.device_sn
-                }
-            ]
-        }
-        topic = '/$system/%s/%s/subdev/topo/add' % (
-            self.product_sn, self.device_sn)
-
-        try:
-            data = json.dumps(add_topo_data)
-            _publish(topic=topic, payload=data.encode('utf-8'),
+        device_login(product_sn=self.product_sn,
+                     device_sn=self.device_sn,
                      is_cached=is_cached, duration=duration)
-            _cache.set(request_id, self._identity)  # add cache for callback
-
-            msg = self._topo_add_queue.get(block=True, timeout=timeout)
-            if msg['RetCode'] != 0:
-                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
-
-        except queue.Empty:
-            raise UIoTEdgeTimeoutException
-        except UIoTEdgeDriverException as e:
-            raise e
-        except Exception as e:
-            raise e
-
-    def delete_topo(self, is_cached=False, duration=0, timeout=5):
-        request_id = _generate_request_id()
-        delete_topo_data = {
-            'RequestID': request_id,
-            "Params": [
-                {
-                    'ProductSN': self.product_sn,
-                    'DeviceSN': self.device_sn
-                }
-            ]
-        }
-        topic = '/$system/%s/%s/subdev/topo/delete' % (
-            self.product_sn, self.device_sn)
-        try:
-            data = json.dumps(delete_topo_data)
-            _publish(topic=topic, payload=data.encode('utf-8'),
-                     is_cached=is_cached, duration=duration)
-            _cache.set(request_id, self._identity)  # add cache for callback
-
-            msg = self._topo_delete_queue.get(block=True, timeout=timeout)
-            if msg['RetCode'] != 0:
-                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
-
-        except queue.Empty:
-            raise UIoTEdgeTimeoutException
-        except UIoTEdgeDriverException as e:
-            raise e
-        except Exception as e:
-            raise e
 
     def publish(self, topic: str, payload: b'', is_cached=False, duration=0):
         if self.online:
-            _publish(topic, payload, is_cached=is_cached,
-                     duration=duration)
+            send_message(topic, payload, is_cached=is_cached,
+                         duration=duration)
         else:
             raise UIoTEdgeDeviceOfflineException
-
-
-def _on_broadcast_message(message):
-    # driver message router ot subdevice
-    payload = str(message.payload, encoding="utf-8")
-    print("broadcast message: ", payload)
-    try:
-        js = json.loads(payload)
-        topic = js['topic']
-
-        msg = json.loads(str(base64.b64decode(js['payload']), "utf-8"))
-        print("broadcast message payload: ", msg)
-
-        sub_dev = None
-        if isinstance(topic, str):
-            # on topo change callback
-            if (topic.endswith("/subdev/topo/notify/add") or topic.endswith("/subdev/topo/notify/delete") or topic.endswith('/subdev/topo/get_reply')) and topic.startswith("/$system/"):
-
-                if _on_topo_change_callback:
-                    _on_topo_change_callback.run(msg)
-
-            # on topo delete callback
-            elif topic.endswith('/subdev/topo/delete_reply') and topic.startswith('/$system/'):
-
-                request_id = msg['RequestID']
-                if _cache.has(request_id):
-                    identity = _cache.get(request_id)
-                    sub_dev = _thingclients[identity]
-                    sub_dev._topo_delete_queue.put(msg)
-            # on topo add callback
-            elif topic.endswith('/subdev/topo/add_reply') and topic.startswith('/$system/'):
-
-                request_id = msg['RequestID']
-                if _cache.has(request_id):
-                    identity = _cache.get(request_id)
-                    sub_dev = _thingclients[identity]
-                    sub_dev._topo_add_queue.put(msg)
-
-            # on login and logout
-            elif topic.endswith('/subdev/login_reply') and topic.startswith('/$system/'):
-                pass
-                # request_id = msg['RequestID']
-                # if _cache.has(request_id):
-                #     identity = _cache.get(request_id)
-                #     sub_dev = _thingclients[identity]
-                #     sub_dev._login_queue.put(msg)
-
-            elif topic.endswith('/subdev/logout_reply') and topic.startswith('/$system/'):
-                # do nothing
-                pass
-            elif topic.endswith('/subdev/enable') and topic.startswith('/$system/'):
-                if _on_status_change_callback:
-                    msg['Status'] = 'enable'
-                    _on_status_change_callback.run(msg)
-            elif topic.endswith('/subdev/disable') and topic.startswith('/$system/'):
-                if _on_status_change_callback:
-                    msg['Status'] = 'disable'
-                    _on_status_change_callback.run(msg)
-            elif topic.endswith('/subdev/register_reply') and topic.startswith('/$system/'):
-                request_id = msg['RequestID']
-                if request_id in _register_queue_map:
-                    q = _register_queue_map[request_id]
-                    q.put(msg)
-            # on normal callback
-            else:
-                print('unknown message content', js)
-        else:
-            print('unknown message topic')
-            return
-
-    except Exception as e:
-        print(e)
-
-
-def _on_message(message):
-    # driver message router ot subdevice
-    payload = str(message.payload, encoding="utf-8")
-    print("normal message: ", payload)
-    js = json.loads(payload)
-    try:
-        identify = js['productSN'] + \
-            '.'+js['deviceSN']
-
-        msg = base64.b64decode(js['payload'])
-        print("broadcast message payload: ", str(msg, 'utf-8'))
-        if identify in _thingclients:
-            sub_dev = _thingclients[identify]
-            if sub_dev.callback:
-                sub_dev.callback(msg)
-        else:
-            print('unknown message topic')
-            return
-
-    except Exception as e:
-        print(e)
 
 
 class Config(object):
@@ -418,21 +82,3 @@ with open(_config_path, 'r') as load_f:
     print(load_dict)
     _deviceInfos = load_dict['deviceList']
     _driverInfo = load_dict['driverInfo']
-
-# subscribe message from router
-_dirver_id = ''.join(random.sample(
-    string.ascii_letters + string.digits, 16)).lower()
-print("dirver_id: ", _dirver_id)
-
-_natsclient.subscribe(subject='edge.local.'+_dirver_id,
-                      callback=_on_message)
-
-_natsclient.subscribe(subject='edge.local.broadcast',
-                      callback=_on_broadcast_message)
-
-
-def _wait():
-    _natsclient.wait()
-
-
-threading.Thread(target=_wait).start()
