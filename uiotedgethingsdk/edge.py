@@ -295,6 +295,10 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
                         payload=bty.encode('utf-8'))
 
 
+def _on_edge_status_message(message):
+    pass
+
+
 def _on_broadcast_message(message):
     # driver message router ot subdevice
     payload = str(message.payload, encoding="utf-8")
@@ -368,7 +372,7 @@ _natsclient.subscribe(subject='edge.local.broadcast',
                       callback=_on_broadcast_message)
 
 _natsclient.subscribe(subject='edge.online.status',
-                      callback=_on_broadcast_message)
+                      callback=_on_edge_status_message)
 
 
 def _wait():
