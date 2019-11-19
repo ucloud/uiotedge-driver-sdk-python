@@ -27,7 +27,7 @@ def del_connect_map(key: str):
 
 
 def _generate_request_id():
-    return ''.join(random.sample(string.ascii_letters + string.digits, 16))
+    return ''.join(random.sample(string.ascii_letters + string.digits, 16)).lower()
 
 
 _edge_online_status = False

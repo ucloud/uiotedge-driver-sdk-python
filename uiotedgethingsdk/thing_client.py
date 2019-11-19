@@ -12,12 +12,6 @@ from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, 
 
 _deviceInfos = []
 _driverInfo = None
-_thingclients = {}
-_cache = Cache(maxsize=1024, ttl=300)
-
-
-def _generate_request_id():
-    return ''.join(random.sample(string.ascii_letters + string.digits, 16))
 
 
 class ThingAccessClient(object):
