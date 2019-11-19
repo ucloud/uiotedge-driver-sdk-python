@@ -36,7 +36,7 @@ async def handler(websocket, path):
 
         client = ThingAccessClient(productSN, deviceSN,
                                    on_msg_callback=on_msg_callback)
-        client.login(is_cached=True, duration=30)
+        client.login()
         await websocket.send("login success")
 
         async for message in websocket:
@@ -50,7 +50,7 @@ async def handler(websocket, path):
                     elif action == 'delete_topo':
                         delete_topo(client.product_sn, client.device_sn)
                     elif action == "logout":
-                        client.logout(is_cached=True, duration=30)
+                        client.logout()
                         return
                     elif action == 'get_topo':
                         get_topo()

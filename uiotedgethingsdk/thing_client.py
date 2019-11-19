@@ -22,22 +22,22 @@ class ThingAccessClient(object):
         self._identity = self.product_sn+'.'+self.device_sn
         self.online = False
 
-    def logout(self, is_cached=False, duration=0):
+    def logout(self):
         if self.online:
             device_logout(product_sn=self.product_sn,
                           device_sn=self.device_sn,
-                          is_cached=is_cached, duration=duration)
+                          is_cached=True, duration=30)
 
             self.online = False
             del_connect_map(self._identity)
 
-    def login(self, is_cached=False, duration=0):
+    def login(self):
         add_connect_map(self._identity, self)
         self.online = True
 
         device_login(product_sn=self.product_sn,
                      device_sn=self.device_sn,
-                     is_cached=is_cached, duration=duration)
+                     is_cached=True, duration=30)
 
     def publish(self, topic: str, payload: b'', is_cached=False, duration=0):
         if self.online:
