@@ -110,11 +110,13 @@ def add_topo(product_sn, device_sn, timeout=5):
     try:
         data = json.dumps(add_topo)
         _publish(topic=topic, payload=data.encode('utf-8'),
-                 is_cached=False, duration=0, timeout=timeout)
+                 is_cached=False, duration=0)
         q = queue.Queue()
         _action_queue_map[request_id] = q
 
         msg = q.get(block=True, timeout=5)
+
+        _action_queue_map.pop(request_id)
         if msg['RetCode'] != 0:
             raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
 
@@ -124,8 +126,6 @@ def add_topo(product_sn, device_sn, timeout=5):
         raise e
     except Exception as e:
         raise e
-    finally:
-        _action_queue_map.pop(request_id)
 
 
 def delete_topo(product_sn, device_sn, timeout=5):
@@ -146,11 +146,13 @@ def delete_topo(product_sn, device_sn, timeout=5):
     try:
         data = json.dumps(delete_topo)
         _publish(topic=topic, payload=data.encode('utf-8'),
-                 is_cached=False, duration=0, timeout=timeout)
+                 is_cached=False, duration=0)
         q = queue.Queue()
         _action_queue_map[request_id] = q
 
         msg = q.get(block=True, timeout=5)
+
+        _action_queue_map.pop(request_id)
         if msg['RetCode'] != 0:
             raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
 
@@ -160,8 +162,6 @@ def delete_topo(product_sn, device_sn, timeout=5):
         raise e
     except Exception as e:
         raise e
-    finally:
-        _action_queue_map.pop(request_id)
 
 
 def register_device(product_sn, device_sn, product_secret, timeout=5):
@@ -182,11 +182,13 @@ def register_device(product_sn, device_sn, product_secret, timeout=5):
     try:
         data = json.dumps(register_data)
         _publish(topic=topic, payload=data.encode('utf-8'),
-                 is_cached=False, duration=0, timeout=timeout)
+                 is_cached=False, duration=0)
         q = queue.Queue()
         _action_queue_map[request_id] = q
 
         msg = q.get(block=True, timeout=timeout)
+        _action_queue_map.pop(request_id)
+        print(msg)
         if msg['RetCode'] != 0:
             raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
 
@@ -196,8 +198,6 @@ def register_device(product_sn, device_sn, product_secret, timeout=5):
         raise e
     except Exception as e:
         raise e
-    finally:
-        _action_queue_map.pop(request_id)
 
 
 def device_login(product_sn, device_sn, is_cached=False, duration=0):
@@ -282,17 +282,21 @@ def send_message(topic: str, payload: b'', is_cached=False, duration=0):
 
 
 def _publish(topic: str, payload: b'', is_cached=False, duration=0):
-    payload_encode = base64.b64encode(payload)
-    data = {
-        'src': 'local',
-        'topic': topic,
-        'isCatched': is_cached,
-        'duration': duration,
-        'payload': str(payload_encode, 'utf-8')
-    }
-    bty = json.dumps(data)
-    _natsclient.publish(subject='edge.router.'+_dirver_id,
-                        payload=bty.encode('utf-8'))
+    try:
+        payload_encode = base64.b64encode(payload)
+        data = {
+            'src': 'local',
+            'topic': topic,
+            'isCatched': is_cached,
+            'duration': duration,
+            'payload': str(payload_encode, 'utf-8')
+        }
+        bty = json.dumps(data)
+        _natsclient.publish(subject='edge.router.'+_dirver_id,
+                            payload=bty.encode('utf-8'))
+    except Exception as e:
+        print(e)
+        raise
 
 
 def _on_edge_status_message(message):

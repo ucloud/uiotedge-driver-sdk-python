@@ -20,14 +20,6 @@ async def handler(websocket, path):
         device_sn = data['deviceSN']
         secret = data['secret']
 
-        print('start register ', product_sn, device_sn)
-        register_device(product_sn, device_sn, secret)
-        print('register success')
-
-        print('start add topo success')
-        add_topo(product_sn, device_sn)
-        print('add topo success')
-
         async def send_to_websocket(msg):
             await websocket.send(msg)
 
@@ -41,9 +33,20 @@ async def handler(websocket, path):
             print('msg receive:', msg)
             send(msg)
 
-        print('start login')
         client = ThingAccessClient(product_sn, device_sn,
                                    on_msg_callback=on_msg_callback)
+
+        print('start register ', product_sn, device_sn)
+        register_device(product_sn, device_sn, secret)
+        print('register success')
+
+        print('start add topo success')
+        add_topo(product_sn, device_sn)
+        print('add topo success')
+
+        print('start login')
+        # client = ThingAccessClient(product_sn, device_sn,
+        #                            on_msg_callback=on_msg_callback)
         client.login()
         await websocket.send("login success")
 

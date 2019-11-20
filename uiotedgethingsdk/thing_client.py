@@ -15,12 +15,22 @@ _driverInfo = None
 
 
 class ThingAccessClient(object):
-    def __init__(self, product_sn, device_sn, on_msg_callback=None):
+    def __init__(self, product_sn: str = '', device_sn: str = '', on_msg_callback=None):
         self.device_sn = device_sn
         self.product_sn = product_sn
+        self.product_secret = ''
         self.callback = on_msg_callback
         self._identity = self.product_sn+'.'+self.device_sn
         self.online = False
+
+    def set_product_sn(self, product_sn):
+        self.product_sn = product_sn
+
+    def set_device_sn(self, device_sn):
+        self.device_sn = device_sn
+
+    def set_product_secret(self, product_secret):
+        self.product_secret = product_secret
 
     def logout(self):
         if self.online:
