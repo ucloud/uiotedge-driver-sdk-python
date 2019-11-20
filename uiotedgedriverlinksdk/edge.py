@@ -5,8 +5,9 @@ import threading
 import queue
 import base64
 import os
+import time
 from pynats import NATSClient
-from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
+from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException, UIoTEdgeOfflineException
 
 _action_queue_map = {}
 _connect_map = {}
@@ -93,110 +94,119 @@ def get_topo(timeout=5):
 
 
 def add_topo(product_sn, device_sn, timeout=5):
-    request_id = _generate_request_id()
-    topic = '/$system/%s/%s/subdev/topo/add' % (
-        product_sn, device_sn)
+    if _edge_online_status:
+        request_id = _generate_request_id()
+        topic = '/$system/%s/%s/subdev/topo/add' % (
+            product_sn, device_sn)
 
-    add_topo = {
-        'RequestID': request_id,
-        "Params": [
-            {
-                'ProductSN': product_sn,
-                'DeviceSN': device_sn
-            }
-        ]
-    }
-    try:
-        data = json.dumps(add_topo)
-        _publish(topic=topic, payload=data.encode('utf-8'),
-                 is_cached=False, duration=0)
-        q = queue.Queue()
-        _action_queue_map[request_id] = q
+        add_topo = {
+            'RequestID': request_id,
+            "Params": [
+                {
+                    'ProductSN': product_sn,
+                    'DeviceSN': device_sn
+                }
+            ]
+        }
+        try:
+            data = json.dumps(add_topo)
+            _publish(topic=topic, payload=data.encode('utf-8'),
+                     is_cached=False, duration=0)
+            q = queue.Queue()
+            _action_queue_map[request_id] = q
 
-        msg = q.get(block=True, timeout=5)
+            msg = q.get(block=True, timeout=5)
 
-        _action_queue_map.pop(request_id)
-        if msg['RetCode'] != 0:
-            raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
+            _action_queue_map.pop(request_id)
+            if msg['RetCode'] != 0:
+                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
 
-    except queue.Empty:
-        raise UIoTEdgeTimeoutException
-    except UIoTEdgeDriverException as e:
-        raise e
-    except Exception as e:
-        raise e
+        except queue.Empty:
+            raise UIoTEdgeTimeoutException
+        except UIoTEdgeDriverException as e:
+            raise e
+        except Exception as e:
+            raise e
+    else:
+        raise UIoTEdgeOfflineException
 
 
 def delete_topo(product_sn, device_sn, timeout=5):
-    request_id = _generate_request_id()
-    topic = '/$system/%s/%s/subdev/topo/delete' % (
-        product_sn, device_sn)
+    if _edge_online_status:
+        request_id = _generate_request_id()
+        topic = '/$system/%s/%s/subdev/topo/delete' % (
+            product_sn, device_sn)
 
-    delete_topo = {
-        'RequestID': request_id,
-        "Params": [
-            {
-                'ProductSN': product_sn,
-                'DeviceSN': device_sn
-            }
-        ]
-    }
+        delete_topo = {
+            'RequestID': request_id,
+            "Params": [
+                {
+                    'ProductSN': product_sn,
+                    'DeviceSN': device_sn
+                }
+            ]
+        }
 
-    try:
-        data = json.dumps(delete_topo)
-        _publish(topic=topic, payload=data.encode('utf-8'),
-                 is_cached=False, duration=0)
-        q = queue.Queue()
-        _action_queue_map[request_id] = q
+        try:
+            data = json.dumps(delete_topo)
+            _publish(topic=topic, payload=data.encode('utf-8'),
+                     is_cached=False, duration=0)
+            q = queue.Queue()
+            _action_queue_map[request_id] = q
 
-        msg = q.get(block=True, timeout=5)
+            msg = q.get(block=True, timeout=5)
 
-        _action_queue_map.pop(request_id)
-        if msg['RetCode'] != 0:
-            raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
+            _action_queue_map.pop(request_id)
+            if msg['RetCode'] != 0:
+                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
 
-    except queue.Empty:
-        raise UIoTEdgeTimeoutException
-    except UIoTEdgeDriverException as e:
-        raise e
-    except Exception as e:
-        raise e
+        except queue.Empty:
+            raise UIoTEdgeTimeoutException
+        except UIoTEdgeDriverException as e:
+            raise e
+        except Exception as e:
+            raise e
+    else:
+        raise UIoTEdgeOfflineException
 
 
 def register_device(product_sn, device_sn, product_secret, timeout=5):
-    request_id = _generate_request_id()
-    register_data = {
-        'RequestID': request_id,
-        "Params": [
-            {
-                'ProductSN': product_sn,
-                'DeviceSN': device_sn,
-                'ProductSecret': product_secret
-            }
-        ]
-    }
-    topic = '/$system/%s/%s/subdev/register' % (
-        product_sn, device_sn)
+    if _edge_online_status:
+        request_id = _generate_request_id()
+        register_data = {
+            'RequestID': request_id,
+            "Params": [
+                {
+                    'ProductSN': product_sn,
+                    'DeviceSN': device_sn,
+                    'ProductSecret': product_secret
+                }
+            ]
+        }
+        topic = '/$system/%s/%s/subdev/register' % (
+            product_sn, device_sn)
 
-    try:
-        data = json.dumps(register_data)
-        _publish(topic=topic, payload=data.encode('utf-8'),
-                 is_cached=False, duration=0)
-        q = queue.Queue()
-        _action_queue_map[request_id] = q
+        try:
+            data = json.dumps(register_data)
+            _publish(topic=topic, payload=data.encode('utf-8'),
+                     is_cached=False, duration=0)
+            q = queue.Queue()
+            _action_queue_map[request_id] = q
 
-        msg = q.get(block=True, timeout=timeout)
-        _action_queue_map.pop(request_id)
-        print(msg)
-        if msg['RetCode'] != 0:
-            raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
+            msg = q.get(block=True, timeout=timeout)
+            _action_queue_map.pop(request_id)
+            print(msg)
+            if msg['RetCode'] != 0:
+                raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
 
-    except queue.Empty:
-        raise UIoTEdgeTimeoutException
-    except UIoTEdgeDriverException as e:
-        raise e
-    except Exception as e:
-        raise e
+        except queue.Empty:
+            raise UIoTEdgeTimeoutException
+        except UIoTEdgeDriverException as e:
+            raise e
+        except Exception as e:
+            raise e
+    else:
+        raise UIoTEdgeOfflineException
 
 
 def device_login(product_sn, device_sn, is_cached=False, duration=0):
@@ -298,10 +308,6 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
         raise
 
 
-def _on_edge_status_message(message):
-    pass
-
-
 def _on_broadcast_message(message):
     # driver message router ot subdevice
     payload = str(message.payload, encoding="utf-8")
@@ -374,12 +380,54 @@ _natsclient.subscribe(subject='edge.local.'+_dirver_id,
 _natsclient.subscribe(subject='edge.local.broadcast',
                       callback=_on_broadcast_message)
 
-_natsclient.subscribe(subject='edge.online.status',
-                      callback=_on_edge_status_message)
+
+def _online_status_callback(message):
+    try:
+        msg = str(message.payload, encoding="utf-8")
+        print("status message: ", msg)
+        js = json.loads(msg)
+        online = js['state']
+        if online == True:
+            global _edge_online_status
+            _edge_online_status = True
+        else:
+            _edge_online_status = False
+
+    except Exception as e:
+        print(e)
+
+
+_natsclient.subscribe(subject='edge.router.state.reply',
+                      callback=_online_status_callback)
 
 
 def _wait():
     _natsclient.wait()
 
 
+def _fetch_online_status():
+    min_retry_timeout = 1
+    max_retry_timeout = 30
+    retry_timeout = min_retry_timeout
+    while True:
+        try:
+            data = {
+                'driverID': _dirver_id
+            }
+            payload = json.dumps(data)
+            _natsclient.publish(subject='edge.router.state.req',
+                                payload=payload.encode('utf-8'))
+
+        except Exception as e:
+            print(e)
+        if _edge_online_status:
+            time.sleep(max_retry_timeout)
+        else:
+            if retry_timeout < max_retry_timeout:
+                retry_timeout = retry_timeout + 1
+            time.sleep(retry_timeout)
+
+
+# _fetch_online_status()
 threading.Thread(target=_wait).start()
+threading.Thread(target=_fetch_online_status).start()
