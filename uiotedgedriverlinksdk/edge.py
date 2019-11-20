@@ -11,8 +11,14 @@ from pynats import NATSClient
 from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException, UIoTEdgeOfflineException
 
 
-logging.basicConfig(level = logging.DEBUG,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 _action_queue_map = {}
 _connect_map = {}
@@ -315,13 +321,15 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
 def _on_broadcast_message(message):
     # driver message router ot subdevice
     payload = str(message.payload, encoding="utf-8")
-    logger.debug("broadcast message: "+ payload)
+    logger.debug("broadcast message: " + payload)
     try:
         js = json.loads(payload)
         topic = js['topic']
 
-        msg = json.loads(str(base64.b64decode(js['payload']), "utf-8"))
-        logger.debug("broadcast message payload: "+ msg)
+        data = str(base64.b64decode(js['payload']), "utf-8")
+        logger.debug("broadcast message payload: " + data)
+
+        msg = json.loads(data)
 
         if isinstance(topic, str):
             # on topo change callback
@@ -360,7 +368,7 @@ def _on_message(message):
             '.'+js['deviceSN']
 
         msg = base64.b64decode(js['payload'])
-        logger.debug("normal message payload: "+ str(msg, 'utf-8'))
+        logger.debug("normal message payload: " + str(msg, 'utf-8'))
         if identify in _connect_map:
             sub_dev = _connect_map[identify]
             if sub_dev.callback:
@@ -376,7 +384,7 @@ def _on_message(message):
 # subscribe message from router
 _dirver_id = ''.join(random.sample(
     string.ascii_letters + string.digits, 16)).lower()
-logger.info("dirver_id: "+ _dirver_id)
+logger.info("dirver_id: " + _dirver_id)
 
 _natsclient.subscribe(subject='edge.local.'+_dirver_id,
                       callback=_on_message)

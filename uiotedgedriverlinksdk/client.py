@@ -10,7 +10,16 @@ from pynats import NATSClient
 from .edge import send_message, device_login, device_logout, del_connect_map, add_connect_map
 from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
 
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+
 _deviceInfos = []
 _driverInfo = None
 
