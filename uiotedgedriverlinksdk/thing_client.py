@@ -4,11 +4,13 @@ import string
 import threading
 import queue
 import base64
+import logging
 import os
 from pynats import NATSClient
 from .edge import send_message, device_login, device_logout, del_connect_map, add_connect_map
 from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
 
+logger = logging.getLogger(__name__)
 _deviceInfos = []
 _driverInfo = None
 
@@ -82,6 +84,6 @@ _config_path = os.environ.get(
     'UIOT_EDGE_LINK_DRIVER_PATH') or '/edge/config/config.json'
 with open(_config_path, 'r') as load_f:
     load_dict = json.load(load_f)
-    print(load_dict)
+    logger.info(load_dict)
     _deviceInfos = load_dict['deviceList']
     _driverInfo = load_dict['driverInfo']

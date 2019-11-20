@@ -6,8 +6,13 @@ import queue
 import base64
 import os
 import time
+import logging
 from pynats import NATSClient
 from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException, UIoTEdgeOfflineException
+
+
+logging.basicConfig(level = logging.DEBUG,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 _action_queue_map = {}
 _connect_map = {}
@@ -195,7 +200,6 @@ def register_device(product_sn, device_sn, product_secret, timeout=5):
 
             msg = q.get(block=True, timeout=timeout)
             _action_queue_map.pop(request_id)
-            print(msg)
             if msg['RetCode'] != 0:
                 raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
 
@@ -304,20 +308,20 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
         _natsclient.publish(subject='edge.router.'+_dirver_id,
                             payload=bty.encode('utf-8'))
     except Exception as e:
-        print(e)
+        logger.error(e)
         raise
 
 
 def _on_broadcast_message(message):
     # driver message router ot subdevice
     payload = str(message.payload, encoding="utf-8")
-    print("broadcast message: ", payload)
+    logger.debug("broadcast message: "+ payload)
     try:
         js = json.loads(payload)
         topic = js['topic']
 
         msg = json.loads(str(base64.b64decode(js['payload']), "utf-8"))
-        print("broadcast message payload: ", msg)
+        logger.debug("broadcast message payload: "+ msg)
 
         if isinstance(topic, str):
             # on topo change callback
@@ -339,40 +343,40 @@ def _on_broadcast_message(message):
                     q = _action_queue_map[request_id]
                     q.put(msg)
         else:
-            print('unknown message topic')
+            logger.warn('unknown message topic')
             return
 
     except Exception as e:
-        print(e)
+        logger.error(e)
 
 
 def _on_message(message):
     # driver message router ot subdevice
     payload = str(message.payload, encoding="utf-8")
-    print("normal message: ", payload)
+    logger.debug("normal message: "+payload)
     try:
         js = json.loads(payload)
         identify = js['productSN'] + \
             '.'+js['deviceSN']
 
         msg = base64.b64decode(js['payload'])
-        print("normal message payload: ", str(msg, 'utf-8'))
+        logger.debug("normal message payload: "+ str(msg, 'utf-8'))
         if identify in _connect_map:
             sub_dev = _connect_map[identify]
             if sub_dev.callback:
                 sub_dev.callback(msg)
         else:
-            print('unknown message topic')
+            logger.warn('unknown message topic')
             return
 
     except Exception as e:
-        print(e)
+        logger.error(e)
 
 
 # subscribe message from router
 _dirver_id = ''.join(random.sample(
     string.ascii_letters + string.digits, 16)).lower()
-print("dirver_id: ", _dirver_id)
+logger.info("dirver_id: "+ _dirver_id)
 
 _natsclient.subscribe(subject='edge.local.'+_dirver_id,
                       callback=_on_message)
@@ -384,7 +388,7 @@ _natsclient.subscribe(subject='edge.local.broadcast',
 def _online_status_callback(message):
     try:
         msg = str(message.payload, encoding="utf-8")
-        print("status message: ", msg)
+        logger.debug("status message: "+msg)
         js = json.loads(msg)
         online = js['state']
         if online == True:
@@ -394,7 +398,7 @@ def _online_status_callback(message):
             _edge_online_status = False
 
     except Exception as e:
-        print(e)
+        logger.error(e)
 
 
 _natsclient.subscribe(subject='edge.router.state.reply',
@@ -419,7 +423,8 @@ def _fetch_online_status():
                                 payload=payload.encode('utf-8'))
 
         except Exception as e:
-            print(e)
+            logger.error(e)
+
         if _edge_online_status:
             time.sleep(max_retry_timeout)
         else:
