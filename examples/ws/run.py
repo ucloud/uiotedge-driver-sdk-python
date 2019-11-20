@@ -86,7 +86,7 @@ async def handler(websocket, path):
         print('connect closed .', deviceSN)
 
 # set on topo change callback
-set_on_topo_change_callback(lambda x: print('topo get or notify:', x))
+set_on_topo_change_callback(lambda x: print('topo change notify:', x))
 set_on_status_change_callback(lambda x: print('status change:', x))
 
 # start websocket server

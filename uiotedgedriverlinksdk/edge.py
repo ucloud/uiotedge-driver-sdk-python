@@ -331,20 +331,28 @@ def _on_broadcast_message(message):
 
         msg = json.loads(data)
 
-        if isinstance(topic, str):
+        if isinstance(topic, str) and topic.startswith("/$system/"):
             # on topo change callback
-            if (topic.endswith("/subdev/topo/notify/add") or topic.endswith("/subdev/topo/notify/delete")) and topic.startswith("/$system/"):
+            if topic.endswith("/subdev/topo/notify/add"):
                 if _on_topo_change_callback:
+                    msg['operaction'] = 'add'
                     _on_topo_change_callback.run(msg)
 
-            elif topic.endswith('/subdev/enable') and topic.startswith('/$system/'):
+            elif topic.endswith("/subdev/topo/notify/delete"):
+                if _on_topo_change_callback:
+                    msg['operaction'] = 'delete'
+                    _on_topo_change_callback.run(msg)
+
+            elif topic.endswith('/subdev/enable'):
                 if _on_status_change_callback:
-                    msg['Status'] = 'enable'
+                    msg['operaction'] = 'enable'
                     _on_status_change_callback.run(msg)
-            elif topic.endswith('/subdev/disable') and topic.startswith('/$system/'):
+
+            elif topic.endswith('/subdev/disable'):
                 if _on_status_change_callback:
-                    msg['Status'] = 'disable'
+                    msg['operaction'] = 'disable'
                     _on_status_change_callback.run(msg)
+
             else:
                 request_id = msg['RequestID']
                 if request_id in _action_queue_map:

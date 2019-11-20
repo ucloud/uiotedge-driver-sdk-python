@@ -57,9 +57,9 @@ async def handler(websocket, path):
                 if 'action' in data:
                     action = data['action']
                     if action == 'add_topo':
-                        client.add_topo()
+                        add_topo(client.product_sn, client.device_sn)
                     elif action == 'delete_topo':
-                        client.delete_topo()
+                        delete_topo(client.product_sn, client.device_sn)
                     elif action == "logout":
                         client.logout()
                         return
