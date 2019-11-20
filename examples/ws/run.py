@@ -1,6 +1,6 @@
-from uiotedgethingsdk.edge import set_on_topo_change_callback, add_topo, delete_topo, get_topo, set_on_status_change_callback
-from uiotedgethingsdk.thing_client import ThingAccessClient
-from uiotedgethingsdk.thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
+from uiotedgedriverlinksdk.edge import set_on_topo_change_callback, add_topo, delete_topo, get_topo, set_on_status_change_callback
+from uiotedgedriverlinksdk.thing_client import ThingAccessClient
+from uiotedgedriverlinksdk.thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
 import asyncio
 import websockets
 import json

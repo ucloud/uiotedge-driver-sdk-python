@@ -5,16 +5,15 @@ if not (sys.version_info[0] == 3):
     sys.exit("Link IoT Edge only support Python 3")
 
 setup(
-    name='uiotedgethingsdk',
+    name='uiotedge_driver_link_sdk',
     version='1.0',
     author='ucloud.cn',
-    packages=['uiotedgethingsdk'],
+    packages=['uiotedgedriverlinksdk'],
     platforms="any",
     license='Apache 2 License',
     install_requires=[
         "setuptools>=16.0",
         "nats-python>=0.5.0",
-        "cacheout>=0.11.2",
         "websockets>=8.0.2"
     ],
     description="UIoT Edge Driver Access SDK"

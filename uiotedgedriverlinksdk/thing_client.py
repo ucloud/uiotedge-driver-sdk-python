@@ -6,7 +6,6 @@ import queue
 import base64
 import os
 from pynats import NATSClient
-from cacheout import Cache
 from .edge import send_message, device_login, device_logout, del_connect_map, add_connect_map
 from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
 
