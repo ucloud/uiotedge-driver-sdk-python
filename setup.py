@@ -16,5 +16,5 @@ setup(
         "nats-python>=0.5.0",
         "websockets>=8.0.2"
     ],
-    description="UIoT Edge Driver Access SDK"
+    description="UIoT Edge Driver Link SDK"
 )

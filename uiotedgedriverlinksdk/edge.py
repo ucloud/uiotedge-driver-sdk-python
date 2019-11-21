@@ -8,7 +8,7 @@ import os
 import time
 import logging
 from pynats import NATSClient
-from .exception import EdgeLinkDriverException, EdgeLinkDriverTimeoutException, EdgeLinkDriverOfflineException
+from .exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
 
 
 logger = logging.getLogger(__name__)
@@ -90,13 +90,13 @@ def get_topo(timeout=5):
 
         msg = q.get(timeout=5)
         if msg['RetCode'] != 0:
-            raise EdgeLinkDriverException(msg['RetCode'], msg['Message'])
+            raise EdgeDriverLinkException(msg['RetCode'], msg['Message'])
 
         return msg
 
     except queue.Empty:
-        raise EdgeLinkDriverTimeoutException
-    except EdgeLinkDriverException as e:
+        raise EdgeDriverLinkTimeoutException
+    except EdgeDriverLinkException as e:
         raise e
     except Exception as e:
         raise e
@@ -130,16 +130,16 @@ def add_topo(product_sn, device_sn, timeout=5):
 
             _action_queue_map.pop(request_id)
             if msg['RetCode'] != 0:
-                raise EdgeLinkDriverException(msg['RetCode'], msg['Message'])
+                raise EdgeDriverLinkException(msg['RetCode'], msg['Message'])
 
         except queue.Empty:
-            raise EdgeLinkDriverTimeoutException
-        except EdgeLinkDriverException as e:
+            raise EdgeDriverLinkTimeoutException
+        except EdgeDriverLinkException as e:
             raise e
         except Exception as e:
             raise e
     else:
-        raise EdgeLinkDriverOfflineException
+        raise EdgeDriverLinkOfflineException
 
 
 def delete_topo(product_sn, device_sn, timeout=5):
@@ -169,16 +169,16 @@ def delete_topo(product_sn, device_sn, timeout=5):
 
             _action_queue_map.pop(request_id)
             if msg['RetCode'] != 0:
-                raise EdgeLinkDriverException(msg['RetCode'], msg['Message'])
+                raise EdgeDriverLinkException(msg['RetCode'], msg['Message'])
 
         except queue.Empty:
-            raise EdgeLinkDriverTimeoutException
-        except EdgeLinkDriverException as e:
+            raise EdgeDriverLinkTimeoutException
+        except EdgeDriverLinkException as e:
             raise e
         except Exception as e:
             raise e
     else:
-        raise EdgeLinkDriverOfflineException
+        raise EdgeDriverLinkOfflineException
 
 
 def register_device(product_sn, device_sn, product_secret, timeout=5):
@@ -207,16 +207,16 @@ def register_device(product_sn, device_sn, product_secret, timeout=5):
             msg = q.get(timeout=timeout)
             _action_queue_map.pop(request_id)
             if msg['RetCode'] != 0:
-                raise EdgeLinkDriverException(msg['RetCode'], msg['Message'])
+                raise EdgeDriverLinkException(msg['RetCode'], msg['Message'])
 
         except queue.Empty:
-            raise EdgeLinkDriverTimeoutException
-        except EdgeLinkDriverException as e:
+            raise EdgeDriverLinkTimeoutException
+        except EdgeDriverLinkException as e:
             raise e
         except Exception as e:
             raise e
     else:
-        raise EdgeLinkDriverOfflineException
+        raise EdgeDriverLinkOfflineException
 
 
 def device_login(product_sn, device_sn, is_cached=False, duration=0):
@@ -245,11 +245,11 @@ def device_login(product_sn, device_sn, is_cached=False, duration=0):
 
     #     msg = q.get( timeout=timeout)
     #     if msg['RetCode'] != 0:
-    #         raise EdgeLinkDriverException(msg['RetCode'], msg['Message'])
+    #         raise EdgeDriverLinkException(msg['RetCode'], msg['Message'])
 
     # except queue.Empty:
-    #     raise EdgeLinkDriverTimeoutException
-    # except EdgeLinkDriverException as e:
+    #     raise EdgeDriverLinkTimeoutException
+    # except EdgeDriverLinkException as e:
     #     raise e
     # except Exception as e:
     #     raise e
@@ -283,11 +283,11 @@ def device_logout(product_sn, device_sn, is_cached=False, duration=0):
 
     #     msg=q.get( timeout=5)
     #     if msg['RetCode'] != 0:
-    #         raise EdgeLinkDriverException(msg['RetCode'], msg['Message'])
+    #         raise EdgeDriverLinkException(msg['RetCode'], msg['Message'])
 
     # except queue.Empty:
-    #     raise EdgeLinkDriverTimeoutException
-    # except EdgeLinkDriverException as e:
+    #     raise EdgeDriverLinkTimeoutException
+    # except EdgeDriverLinkException as e:
     #     raise e
     # except Exception as e:
     #     raise e
