@@ -417,7 +417,7 @@ def _online_status_callback(message):
         logger.error(e)
 
 
-_natsclient.subscribe(subject='edge.router.state.reply',
+_natsclient.subscribe(subject='edge.state.reply',
                       callback=_online_status_callback)
 
 
@@ -435,7 +435,7 @@ def _fetch_online_status():
                 'driverID': _dirver_id
             }
             payload = json.dumps(data)
-            _natsclient.publish(subject='edge.router.state.req',
+            _natsclient.publish(subject='edge.state.req',
                                 payload=payload.encode('utf-8'))
 
         except Exception as e:
