@@ -68,18 +68,20 @@ async def handler(websocket, path):
                 else:
                     print('unknown message')
                     continue
-            except EdgeLinkDriverDeviceOfflineException:
-                await websocket.send("action failed: device logout or offline")
-            except EdgeLinkDriverOfflineException:
-                await websocket.send("action failed: edge if offline")
+            except EdgeLinkDriverDeviceOfflineException as e:
+                await websocket.send(str(e))
+            except EdgeLinkDriverOfflineException as e:
+                await websocket.send(str(e))
             except EdgeLinkDriverTimeoutException as e:
-                await websocket.send("action failed: response timeout")
+                await websocket.send(str(e))
+            except EdgeLinkDriverException as e:
+                await websocket.send(str(e))
             except Exception as e:
                 print('read message error', e)
                 continue
 
     except EdgeLinkDriverException as e:
-        await websocket.send(e)
+        await websocket.send(str(e))
     except Exception as e:
         print('websocket error', e)
     finally:

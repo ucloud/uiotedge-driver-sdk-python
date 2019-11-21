@@ -1,6 +1,6 @@
 from uiotedgedriverlinksdk.edge import set_on_topo_change_callback, add_topo, delete_topo, get_topo, set_on_status_change_callback, register_device
 from uiotedgedriverlinksdk.client import ThingAccessClient
-from uiotedgedriverlinksdk.exception import EdgeLinkDriverException, EdgeLinkDriverTimeoutException, EdgeLinkDriverDeviceOfflineException, EdgeLinkDriverOfflineException
+from uiotedgedriverlinksdk.exception import BaseEdgeException
 import asyncio
 import websockets
 import json
@@ -78,18 +78,12 @@ async def handler(websocket, path):
                 else:
                     print('unknown message')
                     continue
-            except EdgeLinkDriverDeviceOfflineException as e:
-                await websocket.send("login message must be first")
-            except EdgeLinkDriverTimeoutException as e:
-                await websocket.send("wait response timeout")
-            except EdgeLinkDriverOfflineException as e:
-                await websocket.send('edge is offline, cannot send message to cloud')
-            except EdgeLinkDriverException as e:
-                await websocket.send(e.msg)
+            except BaseEdgeException as e:
+                await websocket.send(str(e))
             except Exception as e:
                 print('read message error', e)
-    except EdgeLinkDriverException as e:
-        await websocket.send(e)
+    except BaseEdgeException as e:
+        await websocket.send(str(e))
     except Exception as e:
         print('websocket error', e)
 
