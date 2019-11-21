@@ -7,6 +7,7 @@ import json
 
 
 async def handler(websocket, path):
+    client = ThingAccessClient()
     try:
         login = await websocket.recv()
         data = json.loads(login)
@@ -33,9 +34,6 @@ async def handler(websocket, path):
             print('msg receive:', msg)
             send(msg)
 
-        client = ThingAccessClient(product_sn, device_sn,
-                                   on_msg_callback=on_msg_callback)
-
         print('start register ', product_sn, device_sn)
         register_device(product_sn, device_sn, secret)
         print('register success')
@@ -44,9 +42,13 @@ async def handler(websocket, path):
         add_topo(product_sn, device_sn)
         print('add topo success')
 
-        print('start login')
         # client = ThingAccessClient(product_sn, device_sn,
         #                            on_msg_callback=on_msg_callback)
+        client.set_product_sn(product_sn)
+        client.set_device_sn(device_sn)
+        client.set_msg_callback(on_msg_callback)
+
+        print('start login')
         client.login()
         await websocket.send("login success")
 
@@ -86,6 +88,8 @@ async def handler(websocket, path):
         await websocket.send(str(e))
     except Exception as e:
         print('websocket error', e)
+    finally:
+        client.logout()
 
 # set on topo change callback
 set_on_topo_change_callback(lambda x: print('topo get or notify:', x))

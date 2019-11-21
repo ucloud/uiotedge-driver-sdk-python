@@ -8,7 +8,7 @@ import logging
 import os
 from pynats import NATSClient
 from .edge import send_message, device_login, device_logout, del_connect_map, add_connect_map
-from .exception import EdgeLinkDriverDeviceOfflineException
+from .exception import EdgeLinkDriverDeviceOfflineException, EdgeLinkDriverDeviceConfigException
 
 
 logger = logging.getLogger(__name__)
@@ -30,17 +30,25 @@ class ThingAccessClient(object):
         self.product_sn = product_sn
         self.product_secret = ''
         self.callback = on_msg_callback
-        self._identity = self.product_sn+'.'+self.device_sn
         self.online = False
+        if self.product_sn != '' and self.device_sn != '':
+            self._identity = self.product_sn+'.'+self.device_sn
 
-    def set_product_sn(self, product_sn):
+    def set_product_sn(self, product_sn: str):
         self.product_sn = product_sn
+        if self.product_sn != '' and self.device_sn != '':
+            self._identity = self.product_sn+'.'+self.device_sn
 
-    def set_device_sn(self, device_sn):
+    def set_device_sn(self, device_sn: str):
         self.device_sn = device_sn
+        if self.product_sn != '' and self.device_sn != '':
+            self._identity = self.product_sn+'.'+self.device_sn
 
-    def set_product_secret(self, product_secret):
+    def set_product_secret(self, product_secret: str):
         self.product_secret = product_secret
+
+    def set_msg_callback(self, msg_callback):
+        self.callback = msg_callback
 
     def logout(self):
         if self.online:
@@ -52,6 +60,9 @@ class ThingAccessClient(object):
             del_connect_map(self._identity)
 
     def login(self):
+        if self._identity == '':
+            raise EdgeLinkDriverDeviceConfigException
+
         add_connect_map(self._identity, self)
         self.online = True
 

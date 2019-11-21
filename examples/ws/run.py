@@ -1,12 +1,13 @@
 from uiotedgedriverlinksdk.edge import set_on_topo_change_callback, add_topo, delete_topo, get_topo, set_on_status_change_callback, register_device
 from uiotedgedriverlinksdk.client import ThingAccessClient
-from uiotedgedriverlinksdk.exception import EdgeLinkDriverException, EdgeLinkDriverTimeoutException, EdgeLinkDriverDeviceOfflineException, EdgeLinkDriverOfflineException
+from uiotedgedriverlinksdk.exception import EdgeLinkDriverException, EdgeLinkDriverTimeoutException, EdgeLinkDriverDeviceOfflineException, EdgeLinkDriverOfflineException, BaseEdgeException
 import asyncio
 import websockets
 import json
 
 
 async def handler(websocket, path):
+    client = ThingAccessClient()
     try:
         login = await websocket.recv()
         data = json.loads(login)
@@ -16,10 +17,10 @@ async def handler(websocket, path):
             await websocket.close()
             return
 
-        productSN = data['productSN']
-        deviceSN = data['deviceSN']
+        product_sn = data['productSN']
+        device_sn = data['deviceSN']
 
-        print('receive connect ', productSN, deviceSN)
+        print('receive connect ', product_sn, device_sn)
 
         async def send_to_websocket(msg):
             await websocket.send(msg)
@@ -34,8 +35,12 @@ async def handler(websocket, path):
             print('msg receive:', msg)
             send(msg)
 
-        client = ThingAccessClient(productSN, deviceSN,
-                                   on_msg_callback=on_msg_callback)
+        # client = ThingAccessClient(productSN, deviceSN,
+        #                            on_msg_callback=on_msg_callback)
+        client.set_product_sn(product_sn)
+        client.set_device_sn(device_sn)
+        client.set_msg_callback(on_msg_callback)
+
         client.login()
         await websocket.send("login success")
 
@@ -80,14 +85,13 @@ async def handler(websocket, path):
                 print('read message error', e)
                 continue
 
-    except EdgeLinkDriverException as e:
+    except BaseEdgeException as e:
         await websocket.send(str(e))
     except Exception as e:
         print('websocket error', e)
     finally:
         client.logout()
-        await websocket.close()
-        print('connect closed .', deviceSN)
+        print('connect closed .', device_sn)
 
 # set on topo change callback
 set_on_topo_change_callback(lambda x: print('topo change notify:', x))

@@ -19,6 +19,11 @@ class EdgeLinkDriverTimeoutException(BaseEdgeException):
         return "[{}:{}]".format(self.__class__.__name__, 'wait response timeout, please check network or edeg connect state.')
 
 
+class EdgeLinkDriverDeviceConfigException(BaseEdgeException):
+    def __str__(self):
+        return "[{}:{}]".format(self.__class__.__name__, 'device param error, please make sure product_sn and device_sn not null.')
+
+
 class EdgeLinkDriverDeviceOfflineException(BaseEdgeException):
     def __str__(self):
         return "[{}:{}]".format(self.__class__.__name__, 'device offline, please login first.')
