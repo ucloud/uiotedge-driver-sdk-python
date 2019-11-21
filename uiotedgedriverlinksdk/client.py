@@ -8,7 +8,7 @@ import logging
 import os
 from pynats import NATSClient
 from .edge import send_message, device_login, device_logout, del_connect_map, add_connect_map
-from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
+from .exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
 
 
 logger = logging.getLogger(__name__)

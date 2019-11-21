@@ -8,7 +8,7 @@ import os
 import time
 import logging
 from pynats import NATSClient
-from .thing_exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException, UIoTEdgeOfflineException
+from .exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException, UIoTEdgeOfflineException
 
 
 logger = logging.getLogger(__name__)
