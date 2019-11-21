@@ -88,7 +88,7 @@ def get_topo(timeout=5):
         q = queue.Queue()
         _action_queue_map[request_id] = q
 
-        msg = q.get(block=True, timeout=5)
+        msg = q.get(timeout=5)
         if msg['RetCode'] != 0:
             raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
 
@@ -126,7 +126,7 @@ def add_topo(product_sn, device_sn, timeout=5):
             q = queue.Queue()
             _action_queue_map[request_id] = q
 
-            msg = q.get(block=True, timeout=5)
+            msg = q.get(timeout=5)
 
             _action_queue_map.pop(request_id)
             if msg['RetCode'] != 0:
@@ -165,7 +165,7 @@ def delete_topo(product_sn, device_sn, timeout=5):
             q = queue.Queue()
             _action_queue_map[request_id] = q
 
-            msg = q.get(block=True, timeout=5)
+            msg = q.get(timeout=5)
 
             _action_queue_map.pop(request_id)
             if msg['RetCode'] != 0:
@@ -204,7 +204,7 @@ def register_device(product_sn, device_sn, product_secret, timeout=5):
             q = queue.Queue()
             _action_queue_map[request_id] = q
 
-            msg = q.get(block=True, timeout=timeout)
+            msg = q.get(timeout=timeout)
             _action_queue_map.pop(request_id)
             if msg['RetCode'] != 0:
                 raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
@@ -243,7 +243,7 @@ def device_login(product_sn, device_sn, is_cached=False, duration=0):
     #     q = queue.Queue()
     #     _action_queue_map[request_id] = q
 
-    #     msg = q.get(block=True, timeout=timeout)
+    #     msg = q.get( timeout=timeout)
     #     if msg['RetCode'] != 0:
     #         raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
 
@@ -281,7 +281,7 @@ def device_logout(product_sn, device_sn, is_cached=False, duration=0):
     #     q=queue.Queue()
     #     _action_queue_map[request_id]=q
 
-    #     msg=q.get(block=True, timeout=5)
+    #     msg=q.get( timeout=5)
     #     if msg['RetCode'] != 0:
     #         raise UIoTEdgeDriverException(msg['RetCode'], msg['Message'])
 
@@ -400,21 +400,13 @@ _natsclient.subscribe(subject='edge.local.'+_dirver_id,
 _natsclient.subscribe(subject='edge.local.broadcast',
                       callback=_on_broadcast_message)
 
+_edge_online_status_queue = queue.Queue()
+
 
 def _online_status_callback(message):
-    try:
-        msg = str(message.payload, encoding="utf-8")
-        logger.debug("status message: "+msg)
-        js = json.loads(msg)
-        online = js['state']
-        if online == True:
-            global _edge_online_status
-            _edge_online_status = True
-        else:
-            _edge_online_status = False
-
-    except Exception as e:
-        logger.error(e)
+    msg = str(message.payload, encoding="utf-8")
+    logger.debug("status message: "+msg)
+    _edge_online_status_queue.put(msg)
 
 
 _natsclient.subscribe(subject='edge.state.reply',
@@ -449,6 +441,25 @@ def _fetch_online_status():
             time.sleep(retry_timeout)
 
 
+def _edge_online_status_logic():
+    while True:
+        try:
+            msg = _edge_online_status_queue.get(timeout=45)
+            js = json.loads(msg)
+            online = js['state']
+            if online == True:
+                global _edge_online_status
+                _edge_online_status = True
+            else:
+                _edge_online_status = False
+        except queue.Empty:
+            logger.warn('edge offline')
+            _edge_online_status = False
+        except Exception as e:
+            logger.error(e)
+
+
 # _fetch_online_status()
 threading.Thread(target=_wait).start()
+threading.Thread(target=_edge_online_status_logic).start()
 threading.Thread(target=_fetch_online_status).start()

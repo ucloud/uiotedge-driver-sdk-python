@@ -1,6 +1,6 @@
 from uiotedgedriverlinksdk.edge import set_on_topo_change_callback, add_topo, delete_topo, get_topo, set_on_status_change_callback, register_device
 from uiotedgedriverlinksdk.client import ThingAccessClient
-from uiotedgedriverlinksdk.exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
+from uiotedgedriverlinksdk.exception import EdgeLinkDriverException, EdgeLinkDriverTimeoutException, EdgeLinkDriverDeviceOfflineException, EdgeLinkDriverOfflineException
 import asyncio
 import websockets
 import json
@@ -78,23 +78,20 @@ async def handler(websocket, path):
                 else:
                     print('unknown message')
                     continue
-
+            except EdgeLinkDriverDeviceOfflineException as e:
+                await websocket.send("login message must be first")
+            except EdgeLinkDriverTimeoutException as e:
+                await websocket.send("wait response timeout")
+            except EdgeLinkDriverOfflineException as e:
+                await websocket.send('edge is offline, cannot send message to cloud')
+            except EdgeLinkDriverException as e:
+                await websocket.send(e.msg)
             except Exception as e:
                 print('read message error', e)
-                continue
-    except UIoTEdgeDeviceOfflineException as e:
-        await websocket.send("login message must be first")
-    except UIoTEdgeDriverException as e:
-        await websocket.send(e.msg)
-    except UIoTEdgeTimeoutException as e:
-        await websocket.send('login timeout')
+    except EdgeLinkDriverException as e:
+        await websocket.send(e)
     except Exception as e:
         print('websocket error', e)
-    finally:
-        if client:
-            client.logout()
-        await websocket.close()
-        print('connect closed .', device_sn)
 
 # set on topo change callback
 set_on_topo_change_callback(lambda x: print('topo get or notify:', x))
