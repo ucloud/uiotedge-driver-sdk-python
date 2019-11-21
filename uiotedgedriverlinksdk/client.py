@@ -8,7 +8,7 @@ import logging
 import os
 from pynats import NATSClient
 from .edge import send_message, device_login, device_logout, del_connect_map, add_connect_map
-from .exception import UIoTEdgeDriverException, UIoTEdgeTimeoutException, UIoTEdgeDeviceOfflineException
+from .exception import EdgeLinkDriverDeviceOfflineException
 
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class ThingAccessClient(object):
             send_message(topic, payload, is_cached=is_cached,
                          duration=duration)
         else:
-            raise UIoTEdgeDeviceOfflineException
+            raise EdgeLinkDriverDeviceOfflineException
 
 
 class Config(object):

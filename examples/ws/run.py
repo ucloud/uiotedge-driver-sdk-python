@@ -77,12 +77,9 @@ async def handler(websocket, path):
             except Exception as e:
                 print('read message error', e)
                 continue
-    except EdgeLinkDriverDeviceOfflineException as e:
-        await websocket.send("login message must be first")
+
     except EdgeLinkDriverException as e:
-        await websocket.send(e.msg)
-    except EdgeLinkDriverTimeoutException as e:
-        await websocket.send('login timeout')
+        await websocket.send(e)
     except Exception as e:
         print('websocket error', e)
     finally:
