@@ -68,7 +68,7 @@ ThingInfo包括如下信息：
 ---
 <a name="set_product_sn"></a>
 ### ThingAccessClient.set_product_sn(product_sn)
-设备子设备的productSN
+设置子设备的productSN
 
 * product_sn`str`: 云端分配的ProductSN
 
@@ -76,7 +76,7 @@ ThingInfo包括如下信息：
 ---
 <a name="set_device_sn"></a>
 ### ThingAccessClient.set_device_sn(device_sn)
-设备子设备的DeviceSN
+设置子设备的DeviceSN
 
 * device_sn`str`: 云端分配的DeviceSN
 
@@ -84,7 +84,7 @@ ThingInfo包括如下信息：
 ---
 <a name="set_product_secret"></a>
 ### ThingAccessClient.set_product_secret(product_secret)
-设备子设备的Product Secret
+设置子设备的Product Secret
 
 * product_secret`str`: 云端分配的Product Secret
 
@@ -92,7 +92,7 @@ ThingInfo包括如下信息：
 ---
 <a name="set_product_secret"></a>
 ### ThingAccessClient.set_product_secret(product_secret)
-设备子设备的Product Secret
+设置子设备的Product Secret
 
 * product_secret`str`: 云端分配的Product Secret
 
@@ -100,7 +100,7 @@ ThingInfo包括如下信息：
 ---
 <a name="set_msg_callback"></a>
 ### ThingAccessClient.set_msg_callback(msg_callback)
-设备子设备的接收消息的回调函数
+设置子设备的接收消息的回调函数
 
 * set_msg_callback`func`: 子设备收消息回调
 
