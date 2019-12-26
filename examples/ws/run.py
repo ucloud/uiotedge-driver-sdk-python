@@ -4,21 +4,26 @@ from uiotedgedriverlinksdk.exception import EdgeDriverLinkException, EdgeDriverL
 import asyncio
 import websockets
 import json
+import urllib.parse as urlparse
 
 
 async def handler(websocket, path):
+    parsed = urlparse.urlparse(path)
+    querys = urlparse.parse_qs(parsed.query)
     client = ThingAccessClient()
     try:
-        login = await websocket.recv()
-        data = json.loads(login)
+        # login = await websocket.recv()
+        # data = json.loads(login)
 
-        if 'productSN' not in data or 'deviceSN' not in data:
-            await websocket.send('please login first')
-            await websocket.close()
-            return
+        # if 'productSN' not in data or 'deviceSN' not in data:
+        #     await websocket.send('please login first')
+        #     await websocket.close()
+        #     return
 
-        product_sn = data['productSN']
-        device_sn = data['deviceSN']
+        # product_sn = data['productSN']
+        # device_sn = data['deviceSN']
+        product_sn = str(querys['product_sn'][0])
+        device_sn = str(querys['device_sn'][0])
 
         print('receive connect ', product_sn, device_sn)
 
@@ -98,6 +103,7 @@ set_on_topo_change_callback(lambda x: print('topo change notify:', x))
 set_on_status_change_callback(lambda x: print('status change:', x))
 
 # start websocket server
-start_server = websockets.serve(handler, "0.0.0.0", 5678)
+start_server = websockets.serve(
+    ws_handler=handler, host='0.0.0.0', port=8080)
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()

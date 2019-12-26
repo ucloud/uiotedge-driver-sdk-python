@@ -24,7 +24,7 @@ _action_queue_map = {}
 _connect_map = {}
 
 _nats_url = os.environ.get(
-    'UIOT_EDGE_LINK_NATS_URL') or 'tcp://106.75.237.117:4222'
+    'UIOT_EDGE_LINK_NATS_URL') or 'tcp://120.132.12.140:4222'
 _natsclient = NATSClient(url=_nats_url)
 _natsclient.connect()
 
