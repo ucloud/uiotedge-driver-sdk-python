@@ -1,5 +1,5 @@
 from uiotedgedriverlinksdk.edge import set_on_topo_change_callback, add_topo, delete_topo, get_topo, set_on_status_change_callback, register_device
-from uiotedgedriverlinksdk.client import ThingAccessClient
+from uiotedgedriverlinksdk.client import ThingAccessClient, Config, getConfig
 from uiotedgedriverlinksdk.exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkDeviceOfflineException, EdgeDriverLinkOfflineException, BaseEdgeException
 import asyncio
 import websockets
@@ -26,6 +26,8 @@ async def handler(websocket, path):
         device_sn = str(querys['device_sn'][0])
 
         print('receive connect ', product_sn, device_sn)
+
+        print('readc config', getConfig())
 
         async def send_to_websocket(msg):
             await websocket.send(msg)
@@ -64,6 +66,7 @@ async def handler(websocket, path):
                         return
                     elif action == 'get_topo':
                         get_topo()
+
                 elif 'topic' in data and 'payload' in data:
                     payload = data['payload']
                     if isinstance(payload, dict):
