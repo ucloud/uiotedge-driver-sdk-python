@@ -100,8 +100,7 @@ def getConfig():
 
 
 # get Config
-_config_path = os.environ.get(
-    'UIOT_EDGE_LINK_DRIVER_PATH') or '/edge/config/config.json'
+_config_path = './etc/uiotedge/config.json'
 with open(_config_path, 'r') as load_f:
     load_dict = json.load(load_f)
     logger.info(load_dict)
