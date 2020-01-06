@@ -6,7 +6,7 @@ if not (sys.version_info[0] == 3):
 
 setup(
     name='uiotedge_driver_link_sdk',
-    version='1.0.3',
+    version='1.0.4',
     author='ucloud.cn',
     author_email='joy.zhou@ucloud.cn',
     packages=['uiotedgedriverlinksdk'],
