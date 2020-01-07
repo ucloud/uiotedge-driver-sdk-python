@@ -101,12 +101,14 @@ async def handler(websocket, path):
         client.logout()
         print('connect closed .', device_sn)
 
-# set on topo change callback
-set_on_topo_change_callback(lambda x: print('topo change notify:', x))
-set_on_status_change_callback(lambda x: print('status change:', x))
 
-# start websocket server
-start_server = websockets.serve(
-    ws_handler=handler, host='0.0.0.0', port=8080)
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+if __name__ == "__main__":
+    # set on topo change callback
+    set_on_topo_change_callback(lambda x: print('topo change notify:', x))
+    set_on_status_change_callback(lambda x: print('status change:', x))
+
+    # start websocket server
+    start_server = websockets.serve(
+        ws_handler=handler, host='0.0.0.0', port=8080)
+    asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_forever()

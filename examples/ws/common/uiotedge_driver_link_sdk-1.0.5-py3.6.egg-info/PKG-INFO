@@ -1,0 +1,11 @@
+Metadata-Version: 1.0
+Name: uiotedge-driver-link-sdk
+Version: 1.0.5
+Summary: UIoT Edge Driver Link SDK
+Home-page: UNKNOWN
+Author: ucloud.cn
+Author-email: joy.zhou@ucloud.cn
+License: Apache 2 License
+Description: UIoT Edge Driver Link SDK
+         https://www.ucloud.cn/site/product/uiot.html
+Platform: any

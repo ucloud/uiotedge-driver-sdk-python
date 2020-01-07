@@ -6,14 +6,13 @@ if not (sys.version_info[0] == 3):
 
 setup(
     name='uiotedge_driver_link_sdk',
-    version='1.0.4',
+    version='1.0.5',
     author='ucloud.cn',
     author_email='joy.zhou@ucloud.cn',
     packages=['uiotedgedriverlinksdk'],
     platforms="any",
     license='Apache 2 License',
     install_requires=[
-        "setuptools>=16.0",
         "nats-python>=0.5.0"
     ],
     description="UIoT Edge Driver Link SDK",
