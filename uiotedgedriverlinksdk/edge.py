@@ -1,17 +1,16 @@
 import json
 import random
 import string
-import threading
 import queue
 import base64
-import os
-import time
-import asyncio
+import logging
 from .exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-from .nats import logger,  get_edge_online_status, nats_send
+from .nats import get_edge_online_status, nats_send
 
+logger = logging.getLogger(__name__)
 _action_queue_map = {}
 _connect_map = {}
+
 
 def add_connect_map(key: str, value):
     _connect_map[key] = value

@@ -79,14 +79,14 @@ class natsClient(object):
         self.q.put(msg)
 
 
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter(
-    "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+logger = logging.getLogger(__name__)
+# logger.setLevel(logging.DEBUG)
+# ch = logging.StreamHandler()
+# ch.setLevel(logging.DEBUG)
+# formatter = logging.Formatter(
+#     "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
+# ch.setFormatter(formatter)
+# logger.addHandler(ch)
 
 _edge_online_status = False
 _edge_online_status_queue = queue.Queue()
