@@ -12,16 +12,6 @@ async def handler(websocket, path):
     querys = urlparse.parse_qs(parsed.query)
     client = ThingAccessClient()
     try:
-        # login = await websocket.recv()
-        # data = json.loads(login)
-
-        # if 'productSN' not in data or 'deviceSN' not in data:
-        #     await websocket.send('please login first')
-        #     await websocket.close()
-        #     return
-
-        # product_sn = data['productSN']
-        # device_sn = data['deviceSN']
         product_sn = str(querys['product_sn'][0])
         device_sn = str(querys['device_sn'][0])
 
