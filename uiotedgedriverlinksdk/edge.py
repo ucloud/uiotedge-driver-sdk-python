@@ -13,11 +13,6 @@ from .nats import logger,  get_edge_online_status, nats_send
 _action_queue_map = {}
 _connect_map = {}
 
-
-_nats_url = os.environ.get(
-    'UIOTEDGE_NATS_ADDRESS') or 'tcp://127.0.0.1:4222'
-
-
 def add_connect_map(key: str, value):
     _connect_map[key] = value
 
