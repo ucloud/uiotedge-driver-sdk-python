@@ -402,16 +402,18 @@ logger.info("dirver_id: " + _dirver_id)
 #             logger.error(e)
 
 
-
 def _init_nats_connect():
     loop = asyncio.new_event_loop()
-    loop.run_until_complete(init_nats(loop,_nats_url,_on_message,_on_broadcast_message,_dirver_id))
+    loop.run_until_complete(
+        init_nats(loop, _nats_url, _on_message, _on_broadcast_message, _dirver_id))
     loop.run_forever()
+
 
 def _init_nats_publish():
     loop = asyncio.new_event_loop()
-    loop.run_until_complete(init_nat_publish(_publish_queue,_dirver_id))
+    loop.run_until_complete(init_nat_publish(_publish_queue, _dirver_id))
     loop.run_forever()
+
 
 # _fetch_online_status()
 threading.Thread(target=_init_nats_connect).start()

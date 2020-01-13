@@ -6,22 +6,23 @@ from nats.aio.errors import ErrConnectionClosed, ErrTimeout, ErrNoServers
 
 nc = NATS()
 
+
 async def init_nats(loop, url, msg_handler, broadcast_msg_handler, driver_id):
 
     async def message_handler(msg):
-        subject = msg.subject
-        reply = msg.reply
+        # subject = msg.subject
+        # reply = msg.reply
         data = msg.data.decode()
         # print("Received a message on '{subject} {reply}': {data}".format(
-            # subject=subject, reply=reply, data=data))
+        # subject=subject, reply=reply, data=data))
         msg_handler(data)
-    
+
     async def broadcast_message_handler(msg):
-        subject = msg.subject
-        reply = msg.reply
+        # subject = msg.subject
+        # reply = msg.reply
         data = msg.data.decode()
         # print("Received a broadcast message on '{subject} {reply}': {data}".format(
-            # subject=subject, reply=reply, data=data))
+        # subject=subject, reply=reply, data=data))
         broadcast_msg_handler(data)
 
     try:
@@ -45,7 +46,7 @@ async def init_nat_publish(q, driver_id):
             bty = json.dumps(msg)
             # print("send message")
             await nc.publish(subject='edge.router.'+driver_id,
-                            payload=bty.encode('utf-8'))
+                             payload=bty.encode('utf-8'))
             await nc.flush()
         except Exception as e:
             print(e)
@@ -55,6 +56,3 @@ async def init_nat_publish(q, driver_id):
 #     loop = asyncio.get_event_loop()
 #     loop.run_until_complete(run(loop))
 #     loop.close()
-
-
-    
