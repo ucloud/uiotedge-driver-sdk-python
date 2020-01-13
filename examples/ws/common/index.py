@@ -94,6 +94,7 @@ async def handler(websocket, path):
 
 if __name__ == "__main__":
     # set on topo change callback
+    # init_driver(asyncio.get_event_loop())
     set_on_topo_change_callback(lambda x: print('topo change notify:', x))
     set_on_status_change_callback(lambda x: print('status change:', x))
 

@@ -6,26 +6,13 @@ import queue
 import base64
 import os
 import time
-import logging
 import asyncio
 from .exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-from .nats import init_nats, init_nat_publish
-
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter(
-    "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+from .nats import logger,  get_edge_online_status, nats_send
 
 _action_queue_map = {}
 _connect_map = {}
-_publish_queue = queue.Queue()
 
-_edge_online_status = True
 
 _nats_url = os.environ.get(
     'UIOTEDGE_NATS_ADDRESS') or 'tcp://127.0.0.1:4222'
@@ -41,10 +28,6 @@ def del_connect_map(key: str):
 
 def _generate_request_id():
     return ''.join(random.sample(string.ascii_letters + string.digits, 16)).lower()
-
-
-def get_edge_online_status():
-    return _edge_online_status
 
 
 class _device_notify(object):
@@ -104,7 +87,7 @@ def get_topo(timeout=5):
 
 
 def add_topo(product_sn, device_sn, timeout=5):
-    if _edge_online_status:
+    if get_edge_online_status():
         request_id = _generate_request_id()
         topic = '/$system/%s/%s/subdev/topo/add' % (
             product_sn, device_sn)
@@ -142,7 +125,7 @@ def add_topo(product_sn, device_sn, timeout=5):
 
 
 def delete_topo(product_sn, device_sn, timeout=5):
-    if _edge_online_status:
+    if get_edge_online_status():
         request_id = _generate_request_id()
         topic = '/$system/%s/%s/subdev/topo/delete' % (
             product_sn, device_sn)
@@ -181,7 +164,7 @@ def delete_topo(product_sn, device_sn, timeout=5):
 
 
 def register_device(product_sn, device_sn, product_secret, timeout=5):
-    if _edge_online_status:
+    if get_edge_online_status():
         request_id = _generate_request_id()
         register_data = {
             'RequestID': request_id,
@@ -271,7 +254,7 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
             'duration': duration,
             'payload': str(payload_encode, 'utf-8')
         }
-        _publish_queue.put(data)
+        nats_send(data)
     except Exception as e:
         logger.error(e)
         raise
@@ -344,79 +327,3 @@ def _on_message(message):
 
     except Exception as e:
         logger.error(e)
-
-
-# subscribe message from router
-_dirver_id = ''.join(random.sample(
-    string.ascii_letters + string.digits, 16)).lower()
-logger.info("dirver_id: " + _dirver_id)
-
-# _edge_online_status_queue = queue.Queue()
-
-
-# def _online_status_callback(message):
-#     msg = str(message.payload, encoding="utf-8")
-#     logger.debug("status message: "+msg)
-#     _edge_online_status_queue.put(msg)
-
-
-# def _fetch_online_status():
-#     min_retry_timeout = 1
-#     max_retry_timeout = 30
-#     retry_timeout = min_retry_timeout
-#     while True:
-#         try:
-#             data = {
-#                 'driverID': _dirver_id
-#             }
-#             payload = json.dumps(data)
-#             _natsclient.publish(subject='edge.state.req',
-#                                 payload=payload.encode('utf-8'))
-
-#         except Exception as e:
-#             logger.error(e)
-
-#         if _edge_online_status:
-#             time.sleep(max_retry_timeout)
-#         else:
-#             if retry_timeout < max_retry_timeout:
-#                 retry_timeout = retry_timeout + 1
-#             time.sleep(retry_timeout)
-
-
-# def _edge_online_status_logic():
-#     while True:
-#         try:
-#             msg = _edge_online_status_queue.get(timeout=45)
-#             js = json.loads(msg)
-#             online = js['state']
-#             if online == True:
-#                 global _edge_online_status
-#                 _edge_online_status = True
-#             else:
-#                 _edge_online_status = False
-#         except queue.Empty:
-#             logger.warn('edge offline')
-#             _edge_online_status = False
-#         except Exception as e:
-#             logger.error(e)
-
-
-def _init_nats_connect():
-    loop = asyncio.new_event_loop()
-    loop.run_until_complete(
-        init_nats(loop, _nats_url, _on_message, _on_broadcast_message, _dirver_id))
-    loop.run_forever()
-
-
-def _init_nats_publish():
-    loop = asyncio.new_event_loop()
-    loop.run_until_complete(init_nat_publish(_publish_queue, _dirver_id))
-    loop.run_forever()
-
-
-# _fetch_online_status()
-threading.Thread(target=_init_nats_connect).start()
-threading.Thread(target=_init_nats_publish).start()
-# threading.Thread(target=_edge_online_status_logic).start()
-# threading.Thread(target=_fetch_online_status).start()
