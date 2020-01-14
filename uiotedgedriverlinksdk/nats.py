@@ -30,7 +30,6 @@ _driver_id = ''.join(random.sample(
     string.ascii_letters + string.digits, 16)).lower()
 logger.info("dirver_id: " + _driver_id)
 
-
 class natsClient(object):
     def __init__(self, msg_handler, broadcast_msg_handler):
         self.url = os.environ.get(
@@ -56,6 +55,16 @@ class natsClient(object):
             logger.debug("recv online message:"+data)
             _edge_online_status_queue.put(data)
 
+        async def msg_handler(msg):
+            data = msg.data.decode()
+            logger.debug("recv message:"+data)
+            self.msg_handler(msg)
+        
+        async def broadcast_handler(msg):
+            data = msg.data.decode()
+            logger.debug("recv broadcast message:"+data)
+            self.broadcast_msg_handler(msg)
+
         try:
             print(self.url)
             await self.nc.connect(servers=[self.url], loop=self.loop)
@@ -65,10 +74,10 @@ class natsClient(object):
             sys.exit(0)
 
         if self.nc.is_connected:
-            await self.nc.subscribe("edge.local."+_driver_id, cb=self.msg_handler)
-            await self.nc.subscribe("edge.local.broadcast", cb=self.broadcast_msg_handler)
+            await self.nc.subscribe("edge.local."+_driver_id, cb=msg_handler)
+            await self.nc.subscribe("edge.local.broadcast", cb=broadcast_handler)
             await self.nc.subscribe("edge.state.reply", cb=online_handler)
-
+            await self.nc.flush()
         while True:
             try:
                 msg = _nat_publish_queue.get()

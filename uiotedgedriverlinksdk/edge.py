@@ -238,12 +238,11 @@ def send_message(topic: str, payload: b'', is_cached=False, duration=0):
              is_cached=is_cached, duration=duration)
 
 
-async def _on_broadcast_message(message):
+def _on_broadcast_message(message):
     logger.debug("-------------------")
-    data = message.data.decode()
-    logger.debug("broadcast message: " + data)
+    logger.debug("broadcast message: " + message)
     try:
-        js = json.loads(data)
+        js = json.loads(message)
         topic = js['topic']
 
         data = str(base64.b64decode(js['payload']), "utf-8")
@@ -286,11 +285,10 @@ async def _on_broadcast_message(message):
         logger.error(e)
 
 
-async def _on_message(message):
-    data = message.data.decode()
-    logger.debug("normal message: "+data)
+def _on_message(message):
+    logger.debug("normal message: "+message)
     try:
-        js = json.loads(data)
+        js = json.loads(message)
         identify = js['productSN'] + \
             '.'+js['deviceSN']
 
