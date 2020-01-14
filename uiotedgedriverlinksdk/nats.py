@@ -11,23 +11,35 @@ import os
 from nats.aio.client import Client as NATS
 from nats.aio.errors import ErrConnectionClosed, ErrTimeout, ErrNoServers
 
+_nat_publish_queue = queue.Queue()
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+
+_edge_online_status = False
+_edge_online_status_queue = queue.Queue()
+
+
+_driver_id = ''.join(random.sample(
+    string.ascii_letters + string.digits, 16)).lower()
+logger.info("dirver_id: " + _driver_id)
+
 
 class natsClient(object):
-    def __init__(self):
+    def __init__(self, msg_handler, broadcast_msg_handler):
         self.url = os.environ.get(
             'UIOTEDGE_NATS_ADDRESS') or 'tcp://127.0.0.1:4222'
         self.loop = asyncio.new_event_loop()
         self.nc = NATS()
-        self.q = queue.Queue()
-        self.msg_handler = None
-        self.broadcast_msg_handler = None
-        self.connect()
-
-    def set_msg_handler(self, msg_handler):
         self.msg_handler = msg_handler
-
-    def set_broadcast_msg_handler(self, broadcast_msg_handler):
         self.broadcast_msg_handler = broadcast_msg_handler
+        self.connect()
 
     def connect(self):
         t = threading.Thread(target=self.start_loop)
@@ -39,14 +51,6 @@ class natsClient(object):
         self.loop.run_forever()
 
     async def wait_for_msg(self):
-        async def message_handler(msg):
-            data = msg.data.decode()
-            self.msg_handler(data)
-
-        async def broadcast_message_handler(msg):
-            data = msg.data.decode()
-            self.broadcast_msg_handler(data)
-
         async def online_handler(msg):
             data = msg.data.decode()
             logger.debug("recv online message:"+data)
@@ -61,51 +65,34 @@ class natsClient(object):
             sys.exit(0)
 
         if self.nc.is_connected:
-            await self.nc.subscribe("edge.local."+_driver_id, cb=message_handler)
-            await self.nc.subscribe("edge.local.broadcast", cb=broadcast_message_handler)
+            await self.nc.subscribe("edge.local."+_driver_id, cb=self.msg_handler)
+            await self.nc.subscribe("edge.local.broadcast", cb=self.broadcast_msg_handler)
             await self.nc.subscribe("edge.state.reply", cb=online_handler)
 
         while True:
             try:
-                msg = self.q.get()
-                bty = json.dumps(msg)
-                await self.nc.publish(subject='edge.router.'+_driver_id,
+                msg = _nat_publish_queue.get()
+                bty = json.dumps(msg['payload'])
+                await self.nc.publish(subject=msg['subject'],
                                       payload=bty.encode('utf-8'))
                 await self.nc.flush()
             except Exception as e:
                 logger.error(e)
 
     def publish(self, msg):
-        self.q.put(msg)
-
-
-logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
-# ch = logging.StreamHandler()
-# ch.setLevel(logging.DEBUG)
-# formatter = logging.Formatter(
-#     "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
-# ch.setFormatter(formatter)
-# logger.addHandler(ch)
-
-_edge_online_status = False
-_edge_online_status_queue = queue.Queue()
-
-
-_driver_id = ''.join(random.sample(
-    string.ascii_letters + string.digits, 16)).lower()
-logger.info("dirver_id: " + _driver_id)
-
-_nc = natsClient()
-# _nc.connect()
+        publish_nats_msg(msg)
 
 
 def get_edge_online_status():
     return _edge_online_status
 
 
-def nats_send(msg):
-    _nc.publish(msg)
+def publish_nats_msg(msg):
+    data = {
+        'subject': 'edge.router.'+_driver_id,
+        'payload': msg
+    }
+    _nat_publish_queue.put(data)
 
 
 def _init_edge_status():
@@ -132,10 +119,13 @@ def _fetch_online_status():
     retry_timeout = min_retry_timeout
     while True:
         data = {
-            'driverID': _driver_id
+            'payload': {
+                'driverID': _driver_id
+            },
+            'subject': 'edge.state.req'
         }
 
-        _nc.publish(data)
+        _nat_publish_queue.put(data)
 
         if _edge_online_status:
             time.sleep(max_retry_timeout)

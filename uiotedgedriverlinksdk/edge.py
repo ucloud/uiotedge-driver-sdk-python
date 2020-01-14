@@ -5,7 +5,7 @@ import queue
 import base64
 import logging
 from .exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-from .nats import get_edge_online_status, nats_send
+from .nats import get_edge_online_status, natsClient, publish_nats_msg
 
 logger = logging.getLogger(__name__)
 _action_queue_map = {}
@@ -238,26 +238,12 @@ def send_message(topic: str, payload: b'', is_cached=False, duration=0):
              is_cached=is_cached, duration=duration)
 
 
-def _publish(topic: str, payload: b'', is_cached=False, duration=0):
+async def _on_broadcast_message(message):
+    logger.debug("-------------------")
+    data = message.data.decode()
+    logger.debug("broadcast message: " + data)
     try:
-        payload_encode = base64.b64encode(payload)
-        data = {
-            'src': 'local',
-            'topic': topic,
-            'isCatched': is_cached,
-            'duration': duration,
-            'payload': str(payload_encode, 'utf-8')
-        }
-        nats_send(data)
-    except Exception as e:
-        logger.error(e)
-        raise
-
-
-def _on_broadcast_message(message):
-    logger.debug("broadcast message: " + message)
-    try:
-        js = json.loads(message)
+        js = json.loads(data)
         topic = js['topic']
 
         data = str(base64.b64decode(js['payload']), "utf-8")
@@ -300,12 +286,11 @@ def _on_broadcast_message(message):
         logger.error(e)
 
 
-def _on_message(message):
-    # driver message router ot subdevice
-    # payload = str(message.payload, encoding="utf-8")
-    logger.debug("normal message: "+message)
+async def _on_message(message):
+    data = message.data.decode()
+    logger.debug("normal message: "+data)
     try:
-        js = json.loads(message)
+        js = json.loads(data)
         identify = js['productSN'] + \
             '.'+js['deviceSN']
 
@@ -321,3 +306,23 @@ def _on_message(message):
 
     except Exception as e:
         logger.error(e)
+
+
+nc = natsClient(msg_handler=_on_message,
+                broadcast_msg_handler=_on_broadcast_message)
+
+
+def _publish(topic: str, payload: b'', is_cached=False, duration=0):
+    try:
+        payload_encode = base64.b64encode(payload)
+        data = {
+            'src': 'local',
+            'topic': topic,
+            'isCatched': is_cached,
+            'duration': duration,
+            'payload': str(payload_encode, 'utf-8')
+        }
+        publish_nats_msg(data)
+    except Exception as e:
+        logger.error(e)
+        raise
