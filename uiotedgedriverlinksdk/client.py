@@ -104,5 +104,8 @@ _config_path = './etc/uiotedge/config.json'
 with open(_config_path, 'r') as load_f:
     load_dict = json.load(load_f)
     logger.info(load_dict)
-    _deviceInfos = load_dict['deviceList']
-    _driverInfo = load_dict['driverInfo']
+    if 'deviceList' in load_dict.keys():
+        _deviceInfos = load_dict['deviceList']
+
+    if 'driverInfo' in load_dict.keys():
+        _driverInfo = load_dict['driverInfo']
