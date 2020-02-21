@@ -6,6 +6,8 @@ import websockets
 import json
 import urllib.parse as urlparse
 
+# ws://127.0.0.1:8080/?product_sn=1001&device_sn=1001
+
 
 async def handler(websocket, path):
     parsed = urlparse.urlparse(path)
