@@ -5,7 +5,7 @@ import queue
 import base64
 import logging
 from .exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-from .nats import get_edge_online_status, natsClient, publish_nats_msg
+from .nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _edge_online_status_queue
 
 logger = logging.getLogger(__name__)
 _action_queue_map = {}
@@ -306,10 +306,6 @@ def _on_message(message):
         logger.error(e)
 
 
-nc = natsClient(msg_handler=_on_message,
-                broadcast_msg_handler=_on_broadcast_message)
-
-
 def _publish(topic: str, payload: b'', is_cached=False, duration=0):
     try:
         payload_encode = base64.b64encode(payload)
@@ -324,3 +320,17 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
     except Exception as e:
         logger.error(e)
         raise
+
+
+def init_subscribe_handler():
+    while True:
+        msg = _nat_subscribe_queue.get()
+        subject = msg.subject
+        data = msg.data
+
+        if subject == "edge.local."+_driver_id:
+            _on_message(data)
+        elif subject == "edge.local.broadcast":
+            _on_broadcast_message(data)
+        elif subject == "edge.state.reply":
+            _edge_online_status_queue.put(data)

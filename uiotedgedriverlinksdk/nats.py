@@ -12,6 +12,7 @@ from nats.aio.client import Client as NATS
 from nats.aio.errors import ErrConnectionClosed, ErrTimeout, ErrNoServers
 
 _nat_publish_queue = queue.Queue()
+_nat_subscribe_queue = queue.Queue()
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -30,66 +31,45 @@ _driver_id = ''.join(random.sample(
     string.ascii_letters + string.digits, 16)).lower()
 logger.info("dirver_id: " + _driver_id)
 
+
 class natsClient(object):
-    def __init__(self, msg_handler, broadcast_msg_handler):
+    def __init__(self):
+        self.loop = asyncio.new_event_loop()
         self.url = os.environ.get(
             'UIOTEDGE_NATS_ADDRESS') or 'tcp://127.0.0.1:4222'
-        self.loop = asyncio.new_event_loop()
-        self.nc = NATS()
-        self.msg_handler = msg_handler
-        self.broadcast_msg_handler = broadcast_msg_handler
-        self.connect()
 
-    def connect(self):
-        t = threading.Thread(target=self.start_loop)
-        t.start()
-        asyncio.run_coroutine_threadsafe(self.wait_for_msg(), self.loop)
-
-    def start_loop(self):
-        asyncio.set_event_loop(self.loop)
-        self.loop.run_forever()
-
-    async def wait_for_msg(self):
-        async def online_handler(msg):
-            data = msg.data.decode()
-            logger.debug("recv online message:"+data)
-            _edge_online_status_queue.put(data)
-
-        async def msg_handler(msg):
-            data = msg.data.decode()
-            logger.debug("recv message:"+data)
-            self.msg_handler(msg)
-        
-        async def broadcast_handler(msg):
-            data = msg.data.decode()
-            logger.debug("recv broadcast message:"+data)
-            self.broadcast_msg_handler(msg)
-
-        try:
-            print(self.url)
-            await self.nc.connect(servers=[self.url], loop=self.loop)
-            logger.debug('connect success')
-        except Exception as e:
-            logger.error(e)
-            sys.exit(0)
-
-        if self.nc.is_connected:
-            await self.nc.subscribe("edge.local."+_driver_id, cb=msg_handler)
-            await self.nc.subscribe("edge.local.broadcast", cb=broadcast_handler)
-            await self.nc.subscribe("edge.state.reply", cb=online_handler)
-            await self.nc.flush()
-        while True:
+    def start(self):
+        async def run():
+            nc = NATS()
             try:
-                msg = _nat_publish_queue.get()
-                bty = json.dumps(msg['payload'])
-                await self.nc.publish(subject=msg['subject'],
-                                      payload=bty.encode('utf-8'))
-                await self.nc.flush()
-            except Exception as e:
-                logger.error(e)
+                # Setting explicit list of servers in a cluster.
+                await nc.connect(servers=[self.url], loop=self.loop)
+            except ErrNoServers as e:
+                print(e)
+                sys.exit(1)
 
-    def publish(self, msg):
-        publish_nats_msg(msg)
+            async def message_handler(msg):
+                _nat_subscribe_queue.put(msg)
+                # for i in range(0, 20):
+                #     await nc.publish(reply, "i={i}".format(i=i).encode())
+
+            await nc.subscribe("edge.local."+_driver_id, cb=message_handler)
+            await nc.subscribe("edge.local.broadcast", cb=message_handler)
+            await nc.subscribe("edge.state.reply", cb=message_handler)
+            await nc.flush()
+            print("dd1ddd")
+
+            while True:
+                try:
+                    msg = _nat_publish_queue.get()
+                    bty = json.dumps(msg['payload'])
+                    await nc.publish(subject=msg['subject'],
+                                     payload=bty.encode('utf-8'))
+                    await nc.flush()
+                except Exception as e:
+                    print(e)
+
+        self.loop.run_until_complete(run())
 
 
 def get_edge_online_status():
@@ -144,5 +124,11 @@ def _fetch_online_status():
             time.sleep(retry_timeout)
 
 
+def init():
+    c = natsClient()
+    c.start()
+
+
+threading.Thread(target=init).start()
 threading.Thread(target=_init_edge_status).start()
 threading.Thread(target=_fetch_online_status).start()
