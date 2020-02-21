@@ -42,22 +42,18 @@ class natsClient(object):
         async def run():
             nc = NATS()
             try:
-                # Setting explicit list of servers in a cluster.
                 await nc.connect(servers=[self.url], loop=self.loop)
-            except ErrNoServers as e:
-                print(e)
+            except Exception as e1:
+                logger.error(e1)
                 sys.exit(1)
 
             async def message_handler(msg):
                 _nat_subscribe_queue.put(msg)
-                # for i in range(0, 20):
-                #     await nc.publish(reply, "i={i}".format(i=i).encode())
 
             await nc.subscribe("edge.local."+_driver_id, cb=message_handler)
             await nc.subscribe("edge.local.broadcast", cb=message_handler)
             await nc.subscribe("edge.state.reply", cb=message_handler)
             await nc.flush()
-            print("dd1ddd")
 
             while True:
                 try:
@@ -67,7 +63,7 @@ class natsClient(object):
                                      payload=bty.encode('utf-8'))
                     await nc.flush()
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
 
         self.loop.run_until_complete(run())
 
