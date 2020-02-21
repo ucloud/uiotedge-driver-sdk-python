@@ -4,6 +4,7 @@ import string
 import queue
 import base64
 import logging
+import threading
 from .exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
 from .nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _edge_online_status_queue
 
@@ -325,6 +326,7 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
 def init_subscribe_handler():
     while True:
         msg = _nat_subscribe_queue.get()
+        logger.debug(msg)
         subject = msg.subject
         data = msg.data
 
@@ -334,3 +336,6 @@ def init_subscribe_handler():
             _on_broadcast_message(data)
         elif subject == "edge.state.reply":
             _edge_online_status_queue.put(data)
+
+
+threading.Thread(target=init_subscribe_handler).start()
