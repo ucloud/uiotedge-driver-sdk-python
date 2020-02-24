@@ -6,16 +6,7 @@ import base64
 import logging
 import threading
 from .exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-from .nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _edge_online_status_queue
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter(
-    "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+from .nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _edge_online_status_queue, logger
 
 _action_queue_map = {}
 _connect_map = {}
