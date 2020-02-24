@@ -1,15 +1,12 @@
 import json
 import random
 import string
-import threading
 import queue
 import base64
-import os
-import time
 import logging
-from pynats import NATSClient
+import threading
 from .exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-
+from .nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _edge_online_status_queue
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -23,11 +20,6 @@ logger.addHandler(ch)
 _action_queue_map = {}
 _connect_map = {}
 
-_nats_url = os.environ.get(
-    'UIOTEDGE_NATS_ADDRESS') or 'tcp://127.0.0.1:4222'
-_natsclient = NATSClient(url=_nats_url)
-_natsclient.connect()
-
 
 def add_connect_map(key: str, value):
     _connect_map[key] = value
@@ -39,13 +31,6 @@ def del_connect_map(key: str):
 
 def _generate_request_id():
     return ''.join(random.sample(string.ascii_letters + string.digits, 16)).lower()
-
-
-_edge_online_status = False
-
-
-def get_edge_online_status():
-    return _edge_online_status
 
 
 class _device_notify(object):
@@ -84,7 +69,7 @@ def get_topo(timeout=5):
     try:
         data = json.dumps(get_topo)
         _publish(topic=topic, payload=data.encode('utf-8'),
-                 is_cached=False, duration=0, timeout=timeout)
+                 is_cached=False, duration=0)
         q = queue.Queue()
         _action_queue_map[request_id] = q
 
@@ -105,7 +90,7 @@ def get_topo(timeout=5):
 
 
 def add_topo(product_sn, device_sn, timeout=5):
-    if _edge_online_status:
+    if get_edge_online_status():
         request_id = _generate_request_id()
         topic = '/$system/%s/%s/subdev/topo/add' % (
             product_sn, device_sn)
@@ -143,7 +128,7 @@ def add_topo(product_sn, device_sn, timeout=5):
 
 
 def delete_topo(product_sn, device_sn, timeout=5):
-    if _edge_online_status:
+    if get_edge_online_status():
         request_id = _generate_request_id()
         topic = '/$system/%s/%s/subdev/topo/delete' % (
             product_sn, device_sn)
@@ -182,7 +167,7 @@ def delete_topo(product_sn, device_sn, timeout=5):
 
 
 def register_device(product_sn, device_sn, product_secret, timeout=5):
-    if _edge_online_status:
+    if get_edge_online_status():
         request_id = _generate_request_id()
         register_data = {
             'RequestID': request_id,
@@ -236,25 +221,6 @@ def device_login(product_sn, device_sn, is_cached=False, duration=0):
     data = json.dumps(device_login_msg)
     _publish(topic=topic, payload=data.encode('utf-8'),
              is_cached=is_cached, duration=duration)
-    # try:
-    #     data = json.dumps(device_login_msg)
-    #     _publish(topic=topic, payload=data.encode('utf-8'),
-    #              is_cached=False, duration=0)
-    #     q = queue.Queue()
-    #     _action_queue_map[request_id] = q
-
-    #     msg = q.get( timeout=timeout)
-    #     if msg['RetCode'] != 0:
-    #         raise EdgeDriverLinkException(msg['RetCode'], msg['Message'])
-
-    # except queue.Empty:
-    #     raise EdgeDriverLinkTimeoutException
-    # except EdgeDriverLinkException as e:
-    #     raise e
-    # except Exception as e:
-    #     raise e
-    # finally:
-    #     _action_queue_map.pop(request_id)
 
 
 def device_logout(product_sn, device_sn, is_cached=False, duration=0):
@@ -274,25 +240,6 @@ def device_logout(product_sn, device_sn, is_cached=False, duration=0):
     data = json.dumps(device_logout_msg)
     _publish(topic=topic, payload=data.encode('utf-8'),
              is_cached=is_cached, duration=duration)
-    # try:
-    #     data=json.dumps(device_logout_msg)
-    #     _publish(topic=topic, payload=data.encode('utf-8'),
-    #              is_cached=False, duration=0)
-    #     q=queue.Queue()
-    #     _action_queue_map[request_id]=q
-
-    #     msg=q.get( timeout=5)
-    #     if msg['RetCode'] != 0:
-    #         raise EdgeDriverLinkException(msg['RetCode'], msg['Message'])
-
-    # except queue.Empty:
-    #     raise EdgeDriverLinkTimeoutException
-    # except EdgeDriverLinkException as e:
-    #     raise e
-    # except Exception as e:
-    #     raise e
-    # finally:
-    #     _action_queue_map.pop(request_id)
 
 
 def send_message(topic: str, payload: b'', is_cached=False, duration=0):
@@ -300,34 +247,15 @@ def send_message(topic: str, payload: b'', is_cached=False, duration=0):
              is_cached=is_cached, duration=duration)
 
 
-def _publish(topic: str, payload: b'', is_cached=False, duration=0):
-    try:
-        payload_encode = base64.b64encode(payload)
-        data = {
-            'src': 'local',
-            'topic': topic,
-            'isCatched': is_cached,
-            'duration': duration,
-            'payload': str(payload_encode, 'utf-8')
-        }
-        bty = json.dumps(data)
-        _natsclient.publish(subject='edge.router.'+_dirver_id,
-                            payload=bty.encode('utf-8'))
-    except Exception as e:
-        logger.error(e)
-        raise
-
-
 def _on_broadcast_message(message):
-    # driver message router ot subdevice
-    payload = str(message.payload, encoding="utf-8")
-    logger.debug("broadcast message: " + payload)
+    logger.debug("-------------------")
+    logger.debug("broadcast message: " + str(message))
     try:
-        js = json.loads(payload)
+        js = json.loads(message)
         topic = js['topic']
 
         data = str(base64.b64decode(js['payload']), "utf-8")
-        logger.debug("broadcast message payload: " + data)
+        # logger.debug("broadcast message payload: " + data)
 
         msg = json.loads(data)
 
@@ -367,11 +295,9 @@ def _on_broadcast_message(message):
 
 
 def _on_message(message):
-    # driver message router ot subdevice
-    payload = str(message.payload, encoding="utf-8")
-    logger.debug("normal message: "+payload)
+    logger.debug("normal message: "+str(message))
     try:
-        js = json.loads(payload)
+        js = json.loads(message)
         identify = js['productSN'] + \
             '.'+js['deviceSN']
 
@@ -389,77 +315,35 @@ def _on_message(message):
         logger.error(e)
 
 
-# subscribe message from router
-_dirver_id = ''.join(random.sample(
-    string.ascii_letters + string.digits, 16)).lower()
-logger.info("dirver_id: " + _dirver_id)
-
-_natsclient.subscribe(subject='edge.local.'+_dirver_id,
-                      callback=_on_message)
-
-_natsclient.subscribe(subject='edge.local.broadcast',
-                      callback=_on_broadcast_message)
-
-_edge_online_status_queue = queue.Queue()
-
-
-def _online_status_callback(message):
-    msg = str(message.payload, encoding="utf-8")
-    logger.debug("status message: "+msg)
-    _edge_online_status_queue.put(msg)
+def _publish(topic: str, payload: b'', is_cached=False, duration=0):
+    try:
+        payload_encode = base64.b64encode(payload)
+        data = {
+            'src': 'local',
+            'topic': topic,
+            'isCatched': is_cached,
+            'duration': duration,
+            'payload': str(payload_encode, 'utf-8')
+        }
+        publish_nats_msg(data)
+    except Exception as e:
+        logger.error(e)
+        raise
 
 
-_natsclient.subscribe(subject='edge.state.reply',
-                      callback=_online_status_callback)
-
-
-def _wait():
-    _natsclient.wait()
-
-
-def _fetch_online_status():
-    min_retry_timeout = 1
-    max_retry_timeout = 30
-    retry_timeout = min_retry_timeout
+def init_subscribe_handler():
     while True:
-        try:
-            data = {
-                'driverID': _dirver_id
-            }
-            payload = json.dumps(data)
-            _natsclient.publish(subject='edge.state.req',
-                                payload=payload.encode('utf-8'))
+        msg = _nat_subscribe_queue.get()
+        logger.debug(msg)
+        subject = msg.subject
+        data = msg.data.decode()
 
-        except Exception as e:
-            logger.error(e)
-
-        if _edge_online_status:
-            time.sleep(max_retry_timeout)
-        else:
-            if retry_timeout < max_retry_timeout:
-                retry_timeout = retry_timeout + 1
-            time.sleep(retry_timeout)
+        if subject == "edge.local."+_driver_id:
+            _on_message(data)
+        elif subject == "edge.local.broadcast":
+            _on_broadcast_message(data)
+        elif subject == "edge.state.reply":
+            _edge_online_status_queue.put(data)
 
 
-def _edge_online_status_logic():
-    while True:
-        try:
-            msg = _edge_online_status_queue.get(timeout=45)
-            js = json.loads(msg)
-            online = js['state']
-            if online == True:
-                global _edge_online_status
-                _edge_online_status = True
-            else:
-                _edge_online_status = False
-        except queue.Empty:
-            logger.warn('edge offline')
-            _edge_online_status = False
-        except Exception as e:
-            logger.error(e)
-
-
-# _fetch_online_status()
-threading.Thread(target=_wait).start()
-threading.Thread(target=_edge_online_status_logic).start()
-threading.Thread(target=_fetch_online_status).start()
+threading.Thread(target=init_subscribe_handler).start()

@@ -1,0 +1,17 @@
+{
+	"driverInfo": {
+		"local": true
+	},
+	"deviceList":[
+		{
+			"deviceSN": "10001",
+			"productSN": "zyy_test",
+			"productKey": "123456"
+		},
+		{
+                        "deviceSN": "10002",
+                        "productSN": "zyy_test",
+                        "productKey": "123456"
+                }
+	]
+}

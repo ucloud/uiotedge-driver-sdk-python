@@ -6,22 +6,14 @@ import websockets
 import json
 import urllib.parse as urlparse
 
+# ws://127.0.0.1:8080/?product_sn=4clmd5fx58kp8lua&device_sn=1000101
+
 
 async def handler(websocket, path):
     parsed = urlparse.urlparse(path)
     querys = urlparse.parse_qs(parsed.query)
     client = ThingAccessClient()
     try:
-        # login = await websocket.recv()
-        # data = json.loads(login)
-
-        # if 'productSN' not in data or 'deviceSN' not in data:
-        #     await websocket.send('please login first')
-        #     await websocket.close()
-        #     return
-
-        # product_sn = data['productSN']
-        # device_sn = data['deviceSN']
         product_sn = str(querys['product_sn'][0])
         device_sn = str(querys['device_sn'][0])
 
@@ -104,6 +96,7 @@ async def handler(websocket, path):
 
 if __name__ == "__main__":
     # set on topo change callback
+    # init_driver(asyncio.get_event_loop())
     set_on_topo_change_callback(lambda x: print('topo change notify:', x))
     set_on_status_change_callback(lambda x: print('status change:', x))
 
