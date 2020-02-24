@@ -83,9 +83,10 @@ def publish_nats_msg(msg):
 def _init_edge_status():
     while True:
         try:
-            msg = _edge_online_status_queue.get(timeout=45)
+            msg = _edge_online_status_queue.get(timeout=90)
             js = json.loads(msg)
             online = js['state']
+            print('recv---online--- ststus----:', online)
             global _edge_online_status
             if online == True:
                 _edge_online_status = True
