@@ -76,11 +76,11 @@ class natsClientSub(object):
             sys.exit(1)
 
         async def message_handler(msg):
-            subject = msg.subject
-            reply = msg.reply
-            data = msg.data.decode()
-            print("Received a message on '{subject} {reply}': {data}".format(
-                subject=subject, reply=reply, data=data))
+            # subject = msg.subject
+            # reply = msg.reply
+            # data = msg.data.decode()
+            # print("Received a message on '{subject} {reply}': {data}".format(
+            #     subject=subject, reply=reply, data=data))
             _nat_subscribe_queue.put(msg)
 
         await self.nc.subscribe("edge.local."+_driver_id, queue=_driver_id, cb=message_handler, is_async=True)
