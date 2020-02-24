@@ -249,7 +249,7 @@ def send_message(topic: str, payload: b'', is_cached=False, duration=0):
 
 def _on_broadcast_message(message):
     logger.debug("-------------------")
-    logger.debug("broadcast message: " + message)
+    logger.debug("broadcast message: " + str(message))
     try:
         js = json.loads(message)
         topic = js['topic']
@@ -295,7 +295,7 @@ def _on_broadcast_message(message):
 
 
 def _on_message(message):
-    logger.debug("normal message: "+message)
+    logger.debug("normal message: "+str(message))
     try:
         js = json.loads(message)
         identify = js['productSN'] + \
@@ -336,7 +336,7 @@ def init_subscribe_handler():
         msg = _nat_subscribe_queue.get()
         logger.debug(msg)
         subject = msg.subject
-        data = msg.data
+        data = msg.data.decode()
 
         if subject == "edge.local."+_driver_id:
             _on_message(data)

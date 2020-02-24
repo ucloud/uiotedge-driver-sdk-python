@@ -32,40 +32,65 @@ _driver_id = ''.join(random.sample(
 logger.info("dirver_id: " + _driver_id)
 
 
-class natsClient(object):
+class natsClientPub(object):
     def __init__(self):
-        self.loop = asyncio.new_event_loop()
         self.url = os.environ.get(
             'UIOTEDGE_NATS_ADDRESS') or 'tcp://127.0.0.1:4222'
+        self.nc = NATS()
+        self.loop = asyncio.new_event_loop()
+
+    async def _publish(self):
+        try:
+            await self.nc.connect(servers=[self.url], loop=self.loop)
+        except Exception as e1:
+            logger.error(e1)
+            sys.exit(1)
+
+        while True:
+            try:
+                msg = _nat_publish_queue.get()
+                bty = json.dumps(msg['payload'])
+                await self.nc.publish(subject=msg['subject'],
+                                      payload=bty.encode('utf-8'))
+                await self.nc.flush()
+            except Exception as e:
+                logger.error(e)
 
     def start(self):
-        async def run():
-            nc = NATS()
-            try:
-                await nc.connect(servers=[self.url], loop=self.loop)
-            except Exception as e1:
-                logger.error(e1)
-                sys.exit(1)
+        self.loop.run_until_complete(self._publish())
+        # self.loop.run_forever()
 
-            async def message_handler(msg):
-                _nat_subscribe_queue.put(msg)
 
-            await nc.subscribe("edge.local."+_driver_id, cb=message_handler)
-            await nc.subscribe("edge.local.broadcast", cb=message_handler)
-            await nc.subscribe("edge.state.reply", cb=message_handler)
-            await nc.flush()
+class natsClientSub(object):
+    def __init__(self):
+        self.url = os.environ.get(
+            'UIOTEDGE_NATS_ADDRESS') or 'tcp://127.0.0.1:4222'
+        self.nc = NATS()
+        self.loop = asyncio.new_event_loop()
 
-            while True:
-                try:
-                    msg = _nat_publish_queue.get()
-                    bty = json.dumps(msg['payload'])
-                    await nc.publish(subject=msg['subject'],
-                                     payload=bty.encode('utf-8'))
-                    await nc.flush()
-                except Exception as e:
-                    logger.error(e)
+    async def _connect(self):
+        try:
+            await self.nc.connect(servers=[self.url], loop=self.loop)
+        except Exception as e1:
+            logger.error(e1)
+            sys.exit(1)
 
-        self.loop.run_until_complete(run())
+        async def message_handler(msg):
+            subject = msg.subject
+            reply = msg.reply
+            data = msg.data.decode()
+            print("Received a message on '{subject} {reply}': {data}".format(
+                subject=subject, reply=reply, data=data))
+            _nat_subscribe_queue.put(msg)
+
+        await self.nc.subscribe("edge.local."+_driver_id, queue=_driver_id, cb=message_handler, is_async=True)
+        await self.nc.subscribe("edge.local.broadcast", queue=_driver_id, cb=message_handler, is_async=True)
+        await self.nc.subscribe("edge.state.reply", queue=_driver_id, cb=message_handler, is_async=True)
+        await self.nc.flush()
+
+    def start(self):
+        self.loop.run_until_complete(self._connect())
+        self.loop.run_forever()
 
 
 def get_edge_online_status():
@@ -121,11 +146,15 @@ def _fetch_online_status():
             time.sleep(retry_timeout)
 
 
-def init():
-    c = natsClient()
-    c.start()
+def init_pub():
+    natsClientPub().start()
 
 
-threading.Thread(target=init).start()
+def init_sub():
+    natsClientSub().start()
+
+
+threading.Thread(target=init_pub).start()
+threading.Thread(target=init_sub).start()
 threading.Thread(target=_init_edge_status).start()
 threading.Thread(target=_fetch_online_status).start()
