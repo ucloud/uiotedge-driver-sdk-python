@@ -6,7 +6,7 @@ import base64
 import logging
 import threading
 from .exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-from .nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _edge_online_status_queue, logger
+from .nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _set_edge_status, logger
 
 _action_queue_map = {}
 _connect_map = {}
@@ -334,7 +334,7 @@ def init_subscribe_handler():
         elif subject == "edge.local.broadcast":
             _on_broadcast_message(data)
         elif subject == "edge.state.reply":
-            _edge_online_status_queue.put(data)
+            _set_edge_status()
 
 
 threading.Thread(target=init_subscribe_handler).start()
