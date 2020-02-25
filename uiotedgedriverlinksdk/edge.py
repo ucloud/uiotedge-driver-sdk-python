@@ -239,7 +239,6 @@ def send_message(topic: str, payload: b'', is_cached=False, duration=0):
 
 
 def _on_broadcast_message(message):
-    logger.debug("-------------------")
     logger.debug("broadcast message: " + str(message))
     try:
         js = json.loads(message)
