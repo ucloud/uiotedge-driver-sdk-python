@@ -92,7 +92,8 @@ class natsClientSub(object):
 
 
 def get_edge_online_status():
-    if _cache['edge_status']:
+    is_online = _cache.get('edge_status')
+    if is_online:
         return True
     return False
 
