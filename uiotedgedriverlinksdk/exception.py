@@ -16,7 +16,7 @@ class EdgeDriverLinkException(BaseEdgeException):
 
 class EdgeDriverLinkTimeoutException(BaseEdgeException):
     def __str__(self):
-        return "[{}:{}]".format(self.__class__.__name__, 'wait response timeout, please check network or edeg connect state.')
+        return "[{}:{}]".format(self.__class__.__name__, 'wait response timeout, please check network or edge connect state.')
 
 
 class EdgeDriverLinkDeviceConfigException(BaseEdgeException):

@@ -102,6 +102,6 @@ if __name__ == "__main__":
 
     # start websocket server
     start_server = websockets.serve(
-        ws_handler=handler, host='0.0.0.0', port=8080)
+        ws_handler=handler, host='0.0.0.0', port=5678)
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
