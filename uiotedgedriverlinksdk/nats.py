@@ -11,6 +11,15 @@ import os
 from nats.aio.client import Client as NATS
 from nats.aio.errors import ErrConnectionClosed, ErrTimeout, ErrNoServers
 from cachetools import TTLCache
+import signal
+
+
+def exit_handler(signum, frame):
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, exit_handler)
+signal.signal(signal.SIGTERM, exit_handler)
 
 _cache = TTLCache(maxsize=10, ttl=45)
 _nat_publish_queue = queue.Queue()
