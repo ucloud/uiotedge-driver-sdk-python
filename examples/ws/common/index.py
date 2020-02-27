@@ -57,7 +57,8 @@ async def handler(websocket, path):
                         client.logout()
                         return
                     elif action == 'get_topo':
-                        get_topo()
+                        topo = get_topo()
+                        await websocket.send(str(topo))
 
                 elif 'topic' in data and 'payload' in data:
                     payload = data['payload']
