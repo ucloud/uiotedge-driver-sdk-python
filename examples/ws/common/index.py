@@ -6,7 +6,7 @@ import websockets
 import json
 import urllib.parse as urlparse
 
-# ws://127.0.0.1:8080/?product_sn=4clmd5fx58kp8lua&device_sn=1000101
+# ws://120.132.11.92:5678/?product_sn=4clmd5fx58kp8lua&device_sn=1000101
 
 
 async def handler(websocket, path):
@@ -31,8 +31,8 @@ async def handler(websocket, path):
             loop.close()
 
         def on_msg_callback(msg):
-            print('msg receive:', msg)
-            send(msg)
+            print('msg receive:'+str(msg))
+            send(str(msg))
 
         # client = ThingAccessClient(productSN, deviceSN,
         #                            on_msg_callback=on_msg_callback)
