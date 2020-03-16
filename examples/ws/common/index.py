@@ -5,6 +5,7 @@ import asyncio
 import websockets
 import json
 import urllib.parse as urlparse
+import datetime
 
 # ws://120.132.11.92:5678/?product_sn=4clmd5fx58kp8lua&device_sn=1000101
 
@@ -31,6 +32,8 @@ async def handler(websocket, path):
             loop.close()
 
         def on_msg_callback(msg):
+            print('recv time:{}'.format(
+                datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')))
             print('msg receive:'+str(msg))
             send(str(msg))
 
@@ -64,10 +67,16 @@ async def handler(websocket, path):
                     payload = data['payload']
                     if isinstance(payload, dict):
                         byts = json.dumps(payload)
+                        print('send time:{}'.format(
+                            datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')))
                         client.publish(
                             topic=data['topic'], payload=byts.encode('utf-8'), is_cached=True, duration=30)
+                        print('send time:{}'.format(
+                            datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')))
                     elif isinstance(payload, str):
                         byts = payload.encode('utf-8')
+                        print('send time:{}'.format(
+                            datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')))
                         client.publish(
                             topic=data['topic'], payload=byts, is_cached=True, duration=30)
 

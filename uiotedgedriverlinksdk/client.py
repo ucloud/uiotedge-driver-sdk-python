@@ -8,10 +8,7 @@ import logging
 import os
 from .edge import send_message, device_login, device_logout, del_connect_map, add_connect_map
 from .exception import EdgeDriverLinkDeviceOfflineException, EdgeDriverLinkDeviceConfigException
-from .nats import logger
-
-_deviceInfos = []
-_driverInfo = None
+from .nats import logger, _driverInfo, _deviceInfos
 
 
 class ThingAccessClient(object):
@@ -87,15 +84,3 @@ def getConfig():
             "config": _driverInfo,
             "deviceList": _deviceInfos}
     return json.dumps(config)
-
-
-# get Config
-_config_path = './etc/uiotedge/config.json'
-with open(_config_path, 'r') as load_f:
-    load_dict = json.load(load_f)
-    logger.info(load_dict)
-    if 'deviceList' in load_dict.keys():
-        _deviceInfos = load_dict['deviceList']
-
-    if 'driverInfo' in load_dict.keys():
-        _driverInfo = load_dict['driverInfo']

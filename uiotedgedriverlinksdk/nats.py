@@ -34,8 +34,26 @@ formatter = logging.Formatter(
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-_driver_id = ''.join(random.sample(
-    string.ascii_letters + string.digits, 16)).lower()
+_driver_id = ''
+_deviceInfos = []
+_driverInfo = None
+
+# get Config
+_config_path = './etc/uiotedge/config.json'
+with open(_config_path, 'r') as load_f:
+    load_dict = json.load(load_f)
+    logger.info(load_dict)
+
+    if 'driverID' in load_dict.keys():
+        _driver_id = load_dict['driverID']
+
+    if 'deviceList' in load_dict.keys():
+        _deviceInfos = load_dict['deviceList']
+
+    if 'driverInfo' in load_dict.keys():
+        _driverInfo = load_dict['driverInfo']
+
+
 logger.info("dirver_id: " + _driver_id)
 
 
