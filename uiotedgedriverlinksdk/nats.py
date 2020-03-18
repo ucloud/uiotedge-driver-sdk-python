@@ -11,7 +11,9 @@ from nats.aio.client import Client as NATS
 from nats.aio.errors import ErrConnectionClosed, ErrTimeout, ErrNoServers
 from cachetools import TTLCache
 import signal
-from .log import Log
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def exit_handler(signum, frame):
@@ -29,8 +31,6 @@ _nat_subscribe_queue = queue.Queue()
 _driver_id = ''
 _deviceInfos = []
 _driverInfo = None
-
-logger = Log(__name__).getlog()
 
 # get Config
 _config_path = './etc/uiotedge/config.json'
