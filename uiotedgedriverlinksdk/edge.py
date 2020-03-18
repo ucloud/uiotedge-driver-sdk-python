@@ -3,11 +3,12 @@ import random
 import string
 import queue
 import base64
-import logging
 import threading
 from .exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-from .nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _set_edge_status, logger
+from .nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _set_edge_status
+from .log import Log
 
+logger = Log(__name__).getlog()
 _action_queue_map = {}
 _connect_map = {}
 

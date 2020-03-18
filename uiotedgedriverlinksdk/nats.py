@@ -3,7 +3,6 @@ import json
 import sys
 import queue
 import time
-import logging
 import threading
 import random
 import string
@@ -12,6 +11,7 @@ from nats.aio.client import Client as NATS
 from nats.aio.errors import ErrConnectionClosed, ErrTimeout, ErrNoServers
 from cachetools import TTLCache
 import signal
+from .log import Log
 
 
 def exit_handler(signum, frame):
@@ -25,18 +25,12 @@ _cache = TTLCache(maxsize=10, ttl=45)
 _nat_publish_queue = queue.Queue()
 _nat_subscribe_queue = queue.Queue()
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter(
-    "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
-ch.setFormatter(formatter)
-logger.addHandler(ch)
 
 _driver_id = ''
 _deviceInfos = []
 _driverInfo = None
+
+logger = Log(__name__).getlog()
 
 # get Config
 _config_path = './etc/uiotedge/config.json'
