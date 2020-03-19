@@ -3,7 +3,6 @@ import json
 import sys
 import queue
 import time
-import logging
 import threading
 import random
 import string
@@ -12,6 +11,7 @@ from nats.aio.client import Client as NATS
 from nats.aio.errors import ErrConnectionClosed, ErrTimeout, ErrNoServers
 from cachetools import TTLCache
 import signal
+from uiotedgedriverlinksdk import sdk_print
 
 
 def exit_handler(signum, frame):
@@ -25,18 +25,30 @@ _cache = TTLCache(maxsize=10, ttl=45)
 _nat_publish_queue = queue.Queue()
 _nat_subscribe_queue = queue.Queue()
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter(
-    "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
-ch.setFormatter(formatter)
-logger.addHandler(ch)
 
-_driver_id = ''.join(random.sample(
-    string.ascii_letters + string.digits, 16)).lower()
-logger.info("dirver_id: " + _driver_id)
+_driver_id = ''
+_deviceInfos = []
+_driverInfo = None
+
+# get Config
+_config_path = './etc/uiotedge/config.json'
+with open(_config_path, 'r') as load_f:
+    try:
+        load_dict = json.load(load_f)
+        sdk_print(str(load_dict))
+
+        if 'driverID' in load_dict.keys():
+            _driver_id = load_dict['driverID']
+            sdk_print("dirver_id: " + _driver_id)
+
+        if 'deviceList' in load_dict.keys():
+            _deviceInfos = load_dict['deviceList']
+
+        if 'driverInfo' in load_dict.keys():
+            _driverInfo = load_dict['driverInfo']
+    except Exception as e:
+        sdk_print('load config file error:'+str(e))
+        sys.exit(1)
 
 
 class natsClientPub(object):
@@ -50,7 +62,7 @@ class natsClientPub(object):
         try:
             await self.nc.connect(servers=[self.url], loop=self.loop)
         except Exception as e1:
-            logger.error(e1)
+            sdk_print(e1)
             sys.exit(1)
 
         while True:
@@ -61,7 +73,7 @@ class natsClientPub(object):
                                       payload=bty.encode('utf-8'))
                 await self.nc.flush()
             except Exception as e:
-                logger.error(e)
+                sdk_print(e)
 
     def start(self):
         self.loop.run_until_complete(self._publish())
@@ -79,14 +91,14 @@ class natsClientSub(object):
         try:
             await self.nc.connect(servers=[self.url], loop=self.loop)
         except Exception as e1:
-            logger.error(e1)
+            sdk_print(e1)
             sys.exit(1)
 
         async def message_handler(msg):
             # subject = msg.subject
             # reply = msg.reply
             # data = msg.data.decode()
-            # print("Received a message on '{subject} {reply}': {data}".format(
+            # sdk_print("Received a message on '{subject} {reply}': {data}".format(
             #     subject=subject, reply=reply, data=data))
             _nat_subscribe_queue.put(msg)
 
