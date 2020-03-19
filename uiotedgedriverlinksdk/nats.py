@@ -38,8 +38,8 @@ with open(_config_path, 'r') as load_f:
         sdk_print(str(load_dict))
 
         if 'driverID' in load_dict.keys():
+            global _driver_id
             _driver_id = load_dict['driverID']
-            sdk_print("dirver_id: " + _driver_id)
 
         if 'deviceList' in load_dict.keys():
             _deviceInfos = load_dict['deviceList']
@@ -49,6 +49,8 @@ with open(_config_path, 'r') as load_f:
     except Exception as e:
         sdk_print('load config file error:'+str(e))
         sys.exit(1)
+
+sdk_print("dirver_id: " + _driver_id)
 
 
 class natsClientPub(object):
