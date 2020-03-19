@@ -11,6 +11,7 @@ from nats.aio.client import Client as NATS
 from nats.aio.errors import ErrConnectionClosed, ErrTimeout, ErrNoServers
 from cachetools import TTLCache
 import signal
+from uiotedgedriverlinksdk import sdk_print
 
 
 def exit_handler(signum, frame):
@@ -34,13 +35,11 @@ _config_path = './etc/uiotedge/config.json'
 with open(_config_path, 'r') as load_f:
     try:
         load_dict = json.load(load_f)
-        print('----- driver config start -----')
-        print(load_dict)
-        print('----- driver config end -----')
+        sdk_print(str(load_dict))
 
         if 'driverID' in load_dict.keys():
             _driver_id = load_dict['driverID']
-            print("dirver_id: " + _driver_id)
+            sdk_print("dirver_id: " + _driver_id)
 
         if 'deviceList' in load_dict.keys():
             _deviceInfos = load_dict['deviceList']
@@ -48,7 +47,7 @@ with open(_config_path, 'r') as load_f:
         if 'driverInfo' in load_dict.keys():
             _driverInfo = load_dict['driverInfo']
     except Exception as e:
-        print('load config file error:'+str(e))
+        sdk_print('load config file error:'+str(e))
         sys.exit(1)
 
 
@@ -63,7 +62,7 @@ class natsClientPub(object):
         try:
             await self.nc.connect(servers=[self.url], loop=self.loop)
         except Exception as e1:
-            print(e1)
+            sdk_print(e1)
             sys.exit(1)
 
         while True:
@@ -74,7 +73,7 @@ class natsClientPub(object):
                                       payload=bty.encode('utf-8'))
                 await self.nc.flush()
             except Exception as e:
-                print(e)
+                sdk_print(e)
 
     def start(self):
         self.loop.run_until_complete(self._publish())
@@ -92,14 +91,14 @@ class natsClientSub(object):
         try:
             await self.nc.connect(servers=[self.url], loop=self.loop)
         except Exception as e1:
-            print(e1)
+            sdk_print(e1)
             sys.exit(1)
 
         async def message_handler(msg):
             # subject = msg.subject
             # reply = msg.reply
             # data = msg.data.decode()
-            # print("Received a message on '{subject} {reply}': {data}".format(
+            # sdk_print("Received a message on '{subject} {reply}': {data}".format(
             #     subject=subject, reply=reply, data=data))
             _nat_subscribe_queue.put(msg)
 

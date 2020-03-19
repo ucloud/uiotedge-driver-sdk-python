@@ -13,7 +13,6 @@ import sys
 
 def new_logger():
     import logging
-    logging.basicConfig(format='%(asctime)s %(message)s')
     log = logging.getLogger('websocket')
     log.setLevel(logging.DEBUG)
     ch = logging.StreamHandler()
