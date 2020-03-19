@@ -41,6 +41,9 @@ class WebSocketSever(WebSocketHandler):
         self.client = ThingAccessClient()
         self.log = new_logger()
 
+    def on_message_callback(self, msg):
+        self.write_message(str(msg))
+
     def open(self):
         try:
             product_sn = self.get_argument('product_sn')
@@ -59,10 +62,7 @@ class WebSocketSever(WebSocketHandler):
             self.client.set_device_sn(device_sn)
             self.client.login()
 
-            def on_message_callback(msg):
-                self.write_message(str(msg))
-
-            self.client.set_msg_callback(on_message_callback)
+            self.client.set_msg_callback(self.on_message_callback)
 
             self.write_message('login success')
 
@@ -131,6 +131,10 @@ class Application(tornado.web.Application):
 
 
 def main():
+    from tornado.platform.asyncio import AnyThreadEventLoopPolicy
+    import asyncio
+
+    asyncio.set_event_loop_policy(AnyThreadEventLoopPolicy())
     lo = tornado.ioloop.IOLoop.current()
     handlers = [
         (r"/ws", WebSocketSever, dict(loop=lo))

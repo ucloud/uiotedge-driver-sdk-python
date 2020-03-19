@@ -38,7 +38,6 @@ with open(_config_path, 'r') as load_f:
         sdk_print(str(load_dict))
 
         if 'driverID' in load_dict.keys():
-            global _driver_id
             _driver_id = load_dict['driverID']
 
         if 'deviceList' in load_dict.keys():
@@ -103,7 +102,6 @@ class natsClientSub(object):
             # sdk_print("Received a message on '{subject} {reply}': {data}".format(
             #     subject=subject, reply=reply, data=data))
             _nat_subscribe_queue.put(msg)
-
         await self.nc.subscribe("edge.local."+_driver_id, queue=_driver_id, cb=message_handler, is_async=True)
         await self.nc.subscribe("edge.local.broadcast", queue=_driver_id, cb=message_handler, is_async=True)
         await self.nc.subscribe("edge.state.reply", queue=_driver_id, cb=message_handler, is_async=True)
