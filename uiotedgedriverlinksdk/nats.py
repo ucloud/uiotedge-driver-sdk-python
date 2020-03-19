@@ -32,18 +32,24 @@ _driverInfo = None
 # get Config
 _config_path = './etc/uiotedge/config.json'
 with open(_config_path, 'r') as load_f:
-    load_dict = json.load(load_f)
-    print('driver config:'+load_dict)
+    try:
+        load_dict = json.load(load_f)
+        print('----- driver config start -----')
+        print(load_dict)
+        print('----- driver config end -----')
 
-    if 'driverID' in load_dict.keys():
-        _driver_id = load_dict['driverID']
-        print("dirver_id: " + _driver_id)
+        if 'driverID' in load_dict.keys():
+            _driver_id = load_dict['driverID']
+            print("dirver_id: " + _driver_id)
 
-    if 'deviceList' in load_dict.keys():
-        _deviceInfos = load_dict['deviceList']
+        if 'deviceList' in load_dict.keys():
+            _deviceInfos = load_dict['deviceList']
 
-    if 'driverInfo' in load_dict.keys():
-        _driverInfo = load_dict['driverInfo']
+        if 'driverInfo' in load_dict.keys():
+            _driverInfo = load_dict['driverInfo']
+    except Exception as e:
+        print('load config file error:'+str(e))
+        sys.exit(1)
 
 
 class natsClientPub(object):
