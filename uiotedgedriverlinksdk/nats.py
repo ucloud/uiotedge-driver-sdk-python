@@ -13,6 +13,8 @@ from cachetools import TTLCache
 import signal
 import logging
 
+logger = logging.getLogger('uiotedgedriverlinksdk')
+
 
 def exit_handler(signum, frame):
     sys.exit(0)
@@ -34,11 +36,11 @@ _driverInfo = None
 _config_path = './etc/uiotedge/config.json'
 with open(_config_path, 'r') as load_f:
     load_dict = json.load(load_f)
-    logging.info(load_dict)
+    logger.info(load_dict)
 
     if 'driverID' in load_dict.keys():
         _driver_id = load_dict['driverID']
-        logging.info("dirver_id: " + _driver_id)
+        logger.info("dirver_id: " + _driver_id)
 
     if 'deviceList' in load_dict.keys():
         _deviceInfos = load_dict['deviceList']
@@ -58,7 +60,7 @@ class natsClientPub(object):
         try:
             await self.nc.connect(servers=[self.url], loop=self.loop)
         except Exception as e1:
-            logging.error(e1)
+            logger.error(e1)
             sys.exit(1)
 
         while True:
@@ -69,7 +71,7 @@ class natsClientPub(object):
                                       payload=bty.encode('utf-8'))
                 await self.nc.flush()
             except Exception as e:
-                logging.error(e)
+                logger.error(e)
 
     def start(self):
         self.loop.run_until_complete(self._publish())
@@ -87,7 +89,7 @@ class natsClientSub(object):
         try:
             await self.nc.connect(servers=[self.url], loop=self.loop)
         except Exception as e1:
-            logging.error(e1)
+            logger.error(e1)
             sys.exit(1)
 
         async def message_handler(msg):
