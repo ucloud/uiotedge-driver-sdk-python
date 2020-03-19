@@ -4,11 +4,9 @@ import string
 import queue
 import base64
 import threading
-from .exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-from .nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _set_edge_status
-import logging
+from uiotedgedriverlinksdk.exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
+from uiotedgedriverlinksdk.nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _set_edge_status
 
-logger = logging.getLogger('uiotedgedriverlinksdk')
 _action_queue_map = {}
 _connect_map = {}
 
@@ -240,13 +238,13 @@ def send_message(topic: str, payload: b'', is_cached=False, duration=0):
 
 
 def _on_broadcast_message(message):
-    logger.debug("broadcast message: " + str(message))
+    print("broadcast message: " + str(message))
     try:
         js = json.loads(message)
         topic = js['topic']
 
         data = str(base64.b64decode(js['payload']), "utf-8")
-        # logger.debug("broadcast message payload: " + data)
+        # print("broadcast message payload: " + data)
 
         msg = json.loads(data)
 
@@ -278,32 +276,32 @@ def _on_broadcast_message(message):
                     q = _action_queue_map[request_id]
                     q.put(msg)
         else:
-            logger.warn('unknown message topic')
+            print('unknown message topic')
             return
 
     except Exception as e:
-        logger.error(e)
+        print(e)
 
 
 def _on_message(message):
-    logger.debug("normal message: "+str(message))
+    print("normal message: "+str(message))
     try:
         js = json.loads(message)
         identify = js['productSN'] + \
             '.'+js['deviceSN']
 
         msg = base64.b64decode(js['payload'])
-        logger.debug("normal message payload: " + str(msg, 'utf-8'))
+        print("normal message payload: " + str(msg, 'utf-8'))
         if identify in _connect_map:
             sub_dev = _connect_map[identify]
             if sub_dev.callback:
                 sub_dev.callback(msg)
         else:
-            logger.warn('unknown message topic')
+            print('unknown message topic')
             return
 
     except Exception as e:
-        logger.error(e)
+        print(e)
 
 
 def _publish(topic: str, payload: b'', is_cached=False, duration=0):
@@ -318,14 +316,14 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
         }
         publish_nats_msg(data)
     except Exception as e:
-        logger.error(e)
+        print(e)
         raise
 
 
 def init_subscribe_handler():
     while True:
         msg = _nat_subscribe_queue.get()
-        logger.debug(msg)
+        print(msg)
         subject = msg.subject
         data = msg.data.decode()
 

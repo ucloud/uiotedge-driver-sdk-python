@@ -1,7 +1,7 @@
 import json
-from .edge import send_message, device_login, device_logout, del_connect_map, add_connect_map
-from .exception import EdgeDriverLinkDeviceOfflineException, EdgeDriverLinkDeviceConfigException
-from .nats import _driverInfo, _deviceInfos
+from uiotedgedriverlinksdk.edge import send_message, device_login, device_logout, del_connect_map, add_connect_map
+from uiotedgedriverlinksdk.exception import EdgeDriverLinkDeviceOfflineException, EdgeDriverLinkDeviceConfigException
+from uiotedgedriverlinksdk.nats import _driverInfo, _deviceInfos
 
 
 class ThingAccessClient(object):
