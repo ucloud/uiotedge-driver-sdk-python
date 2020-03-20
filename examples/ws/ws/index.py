@@ -9,11 +9,15 @@ import datetime
 import json
 import signal
 import sys
+from uiotedgedriverlinksdk import set_log_level
 
 
 def new_logger():
     import logging
+    set_log_level(logging.DEBUG)
+
     log = logging.getLogger('websocket')
+    log.handlers.clear()
     log.setLevel(logging.DEBUG)
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)

@@ -324,7 +324,7 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
 def init_subscribe_handler():
     while True:
         msg = _nat_subscribe_queue.get()
-        sdk_print(msg)
+        # sdk_print(msg)
         subject = msg.subject
         data = msg.data.decode()
 
