@@ -11,7 +11,7 @@ from nats.aio.client import Client as NATS
 from nats.aio.errors import ErrConnectionClosed, ErrTimeout, ErrNoServers
 from cachetools import TTLCache
 import signal
-from uiotedgedriverlinksdk import sdk_print
+from uiotedgedriverlinksdk import sdk_print, sdk_error
 
 
 def exit_handler(signum, frame):
@@ -46,7 +46,7 @@ with open(_config_path, 'r') as load_f:
         if 'driverInfo' in load_dict.keys():
             _driverInfo = load_dict['driverInfo']
     except Exception as e:
-        sdk_print('load config file error:'+str(e))
+        sdk_error('load config file error:'+str(e))
         sys.exit(1)
 
 sdk_print("dirver_id: " + _driver_id)
@@ -63,7 +63,7 @@ class natsClientPub(object):
         try:
             await self.nc.connect(servers=[self.url], loop=self.loop)
         except Exception as e1:
-            sdk_print(e1)
+            sdk_error(e1)
             sys.exit(1)
 
         while True:
@@ -74,7 +74,7 @@ class natsClientPub(object):
                                       payload=bty.encode('utf-8'))
                 await self.nc.flush()
             except Exception as e:
-                sdk_print(e)
+                sdk_error(e)
 
     def start(self):
         self.loop.run_until_complete(self._publish())
@@ -92,7 +92,7 @@ class natsClientSub(object):
         try:
             await self.nc.connect(servers=[self.url], loop=self.loop)
         except Exception as e1:
-            sdk_print(e1)
+            sdk_error(e1)
             sys.exit(1)
 
         async def message_handler(msg):
