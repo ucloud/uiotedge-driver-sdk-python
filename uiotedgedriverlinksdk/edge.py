@@ -6,7 +6,7 @@ import base64
 import threading
 from uiotedgedriverlinksdk.exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
 from uiotedgedriverlinksdk.nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _set_edge_status
-from uiotedgedriverlinksdk import sdk_print
+from uiotedgedriverlinksdk import sdk_print, sdk_error
 
 _action_queue_map = {}
 _connect_map = {}
@@ -281,7 +281,7 @@ def _on_broadcast_message(message):
             return
 
     except Exception as e:
-        sdk_print(e)
+        sdk_error(e)
 
 
 def _on_message(message):
@@ -298,11 +298,11 @@ def _on_message(message):
             if sub_dev.callback:
                 sub_dev.callback(msg)
         else:
-            sdk_print('unknown message topic')
+            sdk_error('unknown message topic')
             return
 
     except Exception as e:
-        sdk_print(e)
+        sdk_error(e)
 
 
 def _publish(topic: str, payload: b'', is_cached=False, duration=0):
@@ -317,14 +317,14 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
         }
         publish_nats_msg(data)
     except Exception as e:
-        sdk_print(e)
+        sdk_error(e)
         raise
 
 
 def init_subscribe_handler():
     while True:
         msg = _nat_subscribe_queue.get()
-        sdk_print(msg)
+        # sdk_print(msg)
         subject = msg.subject
         data = msg.data.decode()
 
