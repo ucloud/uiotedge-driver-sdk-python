@@ -45,7 +45,7 @@ class WebSocketSever(WebSocketHandler):
         self.client = ThingAccessClient()
         self.log = new_logger()
 
-    def on_message_callback(self, msg):
+    def on_message_callback(self, topic, msg):
         self.write_message(str(msg))
 
     def open(self):

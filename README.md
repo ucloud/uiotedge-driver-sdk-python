@@ -62,7 +62,7 @@ ThingInfo包括如下信息：
 
 * product_sn`str`: 云端分配的ProductSN
 * device_sn`str`: 云端分配的DeviceSN
-* on_msg_callback`func(msg:b'')`: 云端下发消息回调，消息类型 []byte, 例如：` def callbacl(msg:b''): print(str(msg,'utf-8')`
+* on_msg_callback`func(topic:str, msg:b'')`: 云端下发消息回调，消息类型 []byte, 例如：` def callbacl(topic:str, msg:b''): print(str(msg,'utf-8')`
 
 ---
 <a name="set_product_sn"></a>

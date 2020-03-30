@@ -291,12 +291,13 @@ def _on_message(message):
         identify = js['productSN'] + \
             '.'+js['deviceSN']
 
+        topic = js['topic']
         msg = base64.b64decode(js['payload'])
         sdk_print("normal message payload: " + str(msg, 'utf-8'))
         if identify in _connect_map:
             sub_dev = _connect_map[identify]
             if sub_dev.callback:
-                sub_dev.callback(msg)
+                sub_dev.callback(topic, msg)
         else:
             sdk_error('unknown message topic')
             return
