@@ -18,9 +18,6 @@ def exit_handler(signum, frame):
     sys.exit(0)
 
 
-signal.signal(signal.SIGINT, exit_handler)
-signal.signal(signal.SIGTERM, exit_handler)
-
 _cache = TTLCache(maxsize=10, ttl=45)
 _nat_publish_queue = queue.Queue()
 _nat_subscribe_queue = queue.Queue()
@@ -161,6 +158,14 @@ def init_sub():
     natsClientSub().start()
 
 
-threading.Thread(target=init_pub).start()
-threading.Thread(target=init_sub).start()
-threading.Thread(target=_fetch_online_status).start()
+_t_nats_pub = threading.Thread(target=init_pub)
+_t_nats_pub.setDaemon(True)
+_t_nats_pub.start()
+
+_t_nats_sub = threading.Thread(target=init_sub)
+_t_nats_sub.setDaemon(True)
+_t_nats_sub.start()
+
+_t_online = threading.Thread(target=_fetch_online_status)
+_t_online.setDaemon(True)
+_t_online.start()

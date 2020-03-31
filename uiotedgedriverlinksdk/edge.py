@@ -337,4 +337,6 @@ def init_subscribe_handler():
             _set_edge_status()
 
 
-threading.Thread(target=init_subscribe_handler).start()
+_t_sub = threading.Thread(target=init_subscribe_handler)
+_t_sub.setDaemon(True)
+_t_sub.start()
