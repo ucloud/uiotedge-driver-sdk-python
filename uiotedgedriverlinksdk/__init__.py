@@ -15,7 +15,15 @@ def _get_logger(name):
     global _log_level
     if loggers.get(name):
         log = loggers.get(name)
-        log.setLevel(_log_level)
+        if log.getEffectiveLevel() != logging.INFO:
+            log.setLevel(_log_level)
+            log.handlers = []
+            ch = logging.StreamHandler()
+            ch.setLevel(_log_level)
+            formatter = logging.Formatter(
+                "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
+            ch.setFormatter(formatter)
+            log.addHandler(ch)
         return log
     else:
         logger = logging.getLogger(name)
