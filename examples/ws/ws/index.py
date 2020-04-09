@@ -9,23 +9,10 @@ import datetime
 import json
 import signal
 import sys
-from uiotedgedriverlinksdk import set_log_level
+import logging
 
-
-def new_logger():
-    import logging
-    set_log_level(logging.DEBUG)
-
-    log = logging.getLogger('websocket')
-    log.handlers.clear()
-    log.setLevel(logging.DEBUG)
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
-    ch.setFormatter(formatter)
-    log.addHandler(ch)
-    return log
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 
 class WebSocketSever(WebSocketHandler):
@@ -43,7 +30,6 @@ class WebSocketSever(WebSocketHandler):
         self.product_sn = ''
         self.device_sn = ''
         self.client = ThingAccessClient()
-        self.log = new_logger()
 
     def on_message_callback(self, topic, msg):
         self.write_message(str(msg))
@@ -55,7 +41,7 @@ class WebSocketSever(WebSocketHandler):
         except tornado.web.MissingArgumentError as e:
             self.close(reason=str(e))
         else:
-            self.log.info("websocket connect from: {}.{}".format(
+            log.info("websocket connect from: {}.{}".format(
                 product_sn, device_sn))
             self.product_sn = product_sn
             self.device_sn = device_sn
@@ -81,7 +67,7 @@ class WebSocketSever(WebSocketHandler):
                 return
 
             data = json.loads(message)
-            self.log.info("websocket [{}] from:{}".format(
+            log.info("websocket [{}] from:{}".format(
                 data, self.client_id))
 
             if 'action' in data:
@@ -102,15 +88,15 @@ class WebSocketSever(WebSocketHandler):
                 payload = data['payload']
                 if isinstance(payload, dict):
                     byts = json.dumps(payload)
-                    self.log.info('send time:{}'.format(
+                    log.info('send time:{}'.format(
                         datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')))
                     self.client.publish(
                         topic=data['topic'], payload=byts.encode('utf-8'), is_cached=True, duration=30)
-                    self.log.info('send time:{}'.format(
+                    log.info('send time:{}'.format(
                         datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')))
                 elif isinstance(payload, str):
                     byts = payload.encode('utf-8')
-                    self.log.info('send time:{}'.format(
+                    log.info('send time:{}'.format(
                         datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')))
                     self.client.publish(
                         topic=data['topic'], payload=byts, is_cached=True, duration=30)
@@ -126,7 +112,7 @@ class WebSocketSever(WebSocketHandler):
 
     def on_close(self):
         self.client.logout()
-        self.log.info("websocket closed from:{}".format(self.client_id))
+        log.info("websocket closed from:{}".format(self.client_id))
 
 
 class Application(tornado.web.Application):

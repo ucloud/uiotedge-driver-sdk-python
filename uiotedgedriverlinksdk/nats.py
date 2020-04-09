@@ -8,17 +8,17 @@ import random
 import string
 import os
 from nats.aio.client import Client as NATS
-from nats.aio.errors import ErrConnectionClosed, ErrTimeout, ErrNoServers
-from cachetools import TTLCache
+from nats.aio.errors import NatsError
 import signal
-from uiotedgedriverlinksdk import sdk_print, sdk_error
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 def exit_handler(signum, frame):
     sys.exit(0)
 
 
-_cache = TTLCache(maxsize=10, ttl=45)
 _nat_publish_queue = queue.Queue()
 _nat_subscribe_queue = queue.Queue()
 
@@ -32,7 +32,7 @@ _config_path = './etc/uiotedge/config.json'
 with open(_config_path, 'r') as load_f:
     try:
         load_dict = json.load(load_f)
-        sdk_print(str(load_dict))
+        _logger.info(str(load_dict))
 
         if 'driverID' in load_dict.keys():
             _driver_id = load_dict['driverID']
@@ -43,10 +43,10 @@ with open(_config_path, 'r') as load_f:
         if 'driverInfo' in load_dict.keys():
             _driverInfo = load_dict['driverInfo']
     except Exception as e:
-        sdk_error('load config file error:'+str(e))
+        _logger.error('load config file error:{}'.format(e))
         sys.exit(1)
 
-sdk_print("dirver_id: " + _driver_id)
+_logger.info("dirver_id: {}".format(_driver_id))
 
 
 class natsClientPub(object):
@@ -60,7 +60,7 @@ class natsClientPub(object):
         try:
             await self.nc.connect(servers=[self.url], loop=self.loop)
         except Exception as e1:
-            sdk_error(e1)
+            _logger.error(e1)
             sys.exit(1)
 
         while True:
@@ -70,8 +70,10 @@ class natsClientPub(object):
                 await self.nc.publish(subject=msg['subject'],
                                       payload=bty.encode('utf-8'))
                 await self.nc.flush()
+            except NatsError as e:
+                _logger.error(e)
             except Exception as e:
-                sdk_error(e)
+                _logger.error(e)
 
     def start(self):
         self.loop.run_until_complete(self._publish())
@@ -89,7 +91,7 @@ class natsClientSub(object):
         try:
             await self.nc.connect(servers=[self.url], loop=self.loop)
         except Exception as e1:
-            sdk_error(e1)
+            _logger.error(e1)
             sys.exit(1)
 
         async def message_handler(msg):
@@ -109,13 +111,6 @@ class natsClientSub(object):
         self.loop.run_forever()
 
 
-def get_edge_online_status():
-    is_online = _cache.get('edge_status')
-    if is_online:
-        return True
-    return False
-
-
 def publish_nats_msg(msg):
     data = {
         'subject': 'edge.router.'+_driver_id,
@@ -124,48 +119,18 @@ def publish_nats_msg(msg):
     _nat_publish_queue.put(data)
 
 
-def _set_edge_status():
-    _cache['edge_status'] = True
-
-
-def _fetch_online_status():
-    min_retry_timeout = 1
-    max_retry_timeout = 30
-    retry_timeout = min_retry_timeout
-    while True:
-        data = {
-            'payload': {
-                'driverID': _driver_id
-            },
-            'subject': 'edge.state.req'
-        }
-
-        _nat_publish_queue.put(data)
-
-        if get_edge_online_status():
-            time.sleep(max_retry_timeout)
-        else:
-            if retry_timeout < max_retry_timeout:
-                retry_timeout = retry_timeout + 1
-            time.sleep(retry_timeout)
-
-
-def init_pub():
+def start_pub():
     natsClientPub().start()
 
 
-def init_sub():
+def start_sub():
     natsClientSub().start()
 
 
-_t_nats_pub = threading.Thread(target=init_pub)
+_t_nats_pub = threading.Thread(target=start_pub)
 _t_nats_pub.setDaemon(True)
 _t_nats_pub.start()
 
-_t_nats_sub = threading.Thread(target=init_sub)
+_t_nats_sub = threading.Thread(target=start_sub)
 _t_nats_sub.setDaemon(True)
 _t_nats_sub.start()
-
-_t_online = threading.Thread(target=_fetch_online_status)
-_t_online.setDaemon(True)
-_t_online.start()

@@ -30,6 +30,13 @@ class ThingAccessClient(object):
     def set_msg_callback(self, msg_callback):
         self.callback = msg_callback
 
+    def get_device_info(self):
+        return {
+            "productSN": self.product_sn,
+            "deviceSN": self.device_sn,
+            "state": "online"
+        }
+
     def logout(self):
         if self.online:
             device_logout(product_sn=self.product_sn,

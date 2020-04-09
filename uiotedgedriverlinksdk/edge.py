@@ -4,12 +4,24 @@ import string
 import queue
 import base64
 import threading
+import time
+from cachetools import TTLCache
 from uiotedgedriverlinksdk.exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-from uiotedgedriverlinksdk.nats import get_edge_online_status, _nat_subscribe_queue, publish_nats_msg, _driver_id, _set_edge_status
-from uiotedgedriverlinksdk import sdk_print, sdk_error
+from uiotedgedriverlinksdk.nats import _nat_subscribe_queue, publish_nats_msg, _driver_id, _nat_publish_queue
+import logging
 
+_logger = logging.getLogger(__name__)
 _action_queue_map = {}
 _connect_map = {}
+
+_cache = TTLCache(maxsize=10, ttl=45)
+
+
+def get_edge_online_status():
+    is_online = _cache.get('edge_status')
+    if is_online:
+        return True
+    return False
 
 
 def add_connect_map(key: str, value):
@@ -239,13 +251,13 @@ def send_message(topic: str, payload: b'', is_cached=False, duration=0):
 
 
 def _on_broadcast_message(message):
-    sdk_print("broadcast message: " + str(message))
+    _logger.debug("broadcast message:{} " .format(str(message)))
     try:
         js = json.loads(message)
         topic = js['topic']
 
         data = str(base64.b64decode(js['payload']), "utf-8")
-        # sdk_print("broadcast message payload: " + data)
+        # _logger.debug("broadcast message payload: " + data)
 
         msg = json.loads(data)
 
@@ -277,15 +289,15 @@ def _on_broadcast_message(message):
                     q = _action_queue_map[request_id]
                     q.put(msg)
         else:
-            sdk_print('unknown message topic')
+            _logger.debug('unknown message topic:{}'.format(topic))
             return
 
     except Exception as e:
-        sdk_error(e)
+        _logger.error(e)
 
 
 def _on_message(message):
-    sdk_print("normal message: "+str(message))
+    _logger.debug("normal message: {}".format(str(message)))
     try:
         js = json.loads(message)
         identify = js['productSN'] + \
@@ -293,17 +305,17 @@ def _on_message(message):
 
         topic = js['topic']
         msg = base64.b64decode(js['payload'])
-        sdk_print("normal message payload: " + str(msg, 'utf-8'))
+        _logger.debug("normal message payload: {}".format(str(msg, 'utf-8')))
         if identify in _connect_map:
             sub_dev = _connect_map[identify]
             if sub_dev.callback:
                 sub_dev.callback(topic, msg)
         else:
-            sdk_error('unknown message topic')
+            _logger.error('unknown message topic:{}'.format(topic))
             return
 
     except Exception as e:
-        sdk_error(e)
+        _logger.error(e)
 
 
 def _publish(topic: str, payload: b'', is_cached=False, duration=0):
@@ -318,14 +330,18 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
         }
         publish_nats_msg(data)
     except Exception as e:
-        sdk_error(e)
-        raise
+        _logger.error(e)
+        raise e
+
+
+def _set_edge_status():
+    _cache['edge_status'] = True
 
 
 def init_subscribe_handler():
     while True:
         msg = _nat_subscribe_queue.get()
-        # sdk_print(msg)
+        # _logger.debug(msg)
         subject = msg.subject
         data = msg.data.decode()
 
@@ -337,6 +353,43 @@ def init_subscribe_handler():
             _set_edge_status()
 
 
+def _get_device_list():
+    global _connect_map
+    result = []
+    for k, v in _connect_map.items():
+        result.append(v.get_device_info())
+
+    return result
+
+
+def fetch_online_status():
+    min_retry_timeout = 1
+    max_retry_timeout = 30
+    retry_timeout = min_retry_timeout
+    while True:
+        device_list = _get_device_list()
+        data = {
+            'payload': {
+                'driverID': _driver_id,
+                'devices': device_list
+            },
+            'subject': 'edge.state.req'
+        }
+
+        _nat_publish_queue.put(data)
+
+        if get_edge_online_status():
+            time.sleep(max_retry_timeout)
+        else:
+            if retry_timeout < max_retry_timeout:
+                retry_timeout = retry_timeout + 1
+            time.sleep(retry_timeout)
+
+
 _t_sub = threading.Thread(target=init_subscribe_handler)
 _t_sub.setDaemon(True)
 _t_sub.start()
+
+_t_online = threading.Thread(target=fetch_online_status)
+_t_online.setDaemon(True)
+_t_online.start()
