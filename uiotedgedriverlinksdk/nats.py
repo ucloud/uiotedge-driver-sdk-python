@@ -34,8 +34,7 @@ with open(_config_path, 'r') as load_f:
         load_dict = json.load(load_f)
         _logger.info(str(load_dict))
 
-        if 'driverID' in load_dict.keys():
-            _driver_id = load_dict['driverID']
+        _driver_id = load_dict['driverID']
 
         if 'deviceList' in load_dict.keys():
             _deviceInfos = load_dict['deviceList']
