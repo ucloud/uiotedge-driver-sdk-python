@@ -1,17 +1,138 @@
 {
+	"driverID": "01e59xcwrke6t02615763ptx1x",
 	"driverInfo": {
-		"local": true
+		"chan0": {
+			"baudrate": 9600,
+			"method": "rtu",
+			"port": "/dev/ttyUSB0"
+		},
+		"chan1": {
+			"baudrate": 9600,
+			"method": "rtu",
+			"port": "/dev/ttyUSB1"
+		},
+		"modbus_config": {
+			"mode": "cycle",
+			"read": [
+				{
+					"action": "coils",
+					"address": "0x0001",
+					"number": 1,
+					"prop_list": [
+						{
+							"count": 1,
+							"name": "data.coil1"
+						}
+					]
+				},
+				{
+					"action": "coils",
+					"address": "0x0002",
+					"number": 1,
+					"prop_list": [
+						{
+							"count": 1,
+							"name": "data.coil2"
+						}
+					]
+				},
+				{
+					"action": "discrete_inputs",
+					"address": "0x0001",
+					"number": 4,
+					"prop_list": [
+						{
+							"count": 1,
+							"name": "device.input1"
+						},
+						{
+							"count": 1,
+							"name": "device.input2"
+						},
+						{
+							"count": 1,
+							"name": "device.input3"
+						},
+						{
+							"count": 1,
+							"name": "device.input4"
+						}
+					]
+				}
+			],
+			"topic": "/{}/{}/upload",
+			"write": {
+				"device.coil1": {
+					"action": "coil",
+					"address": "0x0001"
+				},
+				"device.coil1_coil2": {
+					"action": "coils",
+					"address": "0x0001"
+				},
+				"device.coil2": {
+					"action": "coil",
+					"address": "0x0002"
+				}
+			}
+		},
+		"modbus_config1": {
+			"mode": "cycle",
+			"read": [
+				{
+					"action": "input_registers",
+					"address": 1,
+					"number": 2,
+					"prop_list": [
+						{
+							"count": 1,
+							"name": "data.temperature",
+							"offset": 0,
+							"scale": 0.1,
+							"type": "uint"
+						},
+						{
+							"count": 1,
+							"name": "data.humidity",
+							"offset": 0,
+							"scale": 0.01
+						}
+					]
+				}
+			],
+			"topic": "/{}/{}/upload",
+			"write": {
+				"data.humidity_offset": {
+					"action": "register",
+					"adress": "0x1023"
+				},
+				"data.temperature": {
+					"action": "register",
+					"adress": "0x1023"
+				}
+			}
+		}
 	},
 	"deviceList": [
 		{
-			"deviceSN": "10001",
-			"productSN": "zyy_test",
-			"productKey": "123456"
+			"productSN": "4clmd5fx58kp8lua",
+			"deviceSN": "8000101",
+			"config": {
+				"channel": "chan0",
+				"config": "modbus_config",
+				"periods": 30,
+				"slave_address": 2
+			}
 		},
 		{
-			"deviceSN": "10002",
-			"productSN": "zyy_test",
-			"productKey": "123456"
+			"productSN": "4clmd5fx58kp8lua",
+			"deviceSN": "6000101",
+			"config": {
+				"channel": "chan1",
+				"config": "modbus_config1",
+				"periods": 30,
+				"slave_address": 1
+			}
 		}
 	]
 }
