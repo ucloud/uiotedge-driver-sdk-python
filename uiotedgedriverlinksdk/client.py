@@ -1,5 +1,5 @@
 import json
-from uiotedgedriverlinksdk.edge import send_message, device_login, device_logout, del_connect_map, add_connect_map
+from uiotedgedriverlinksdk.edge import send_message, device_login_async, device_login_sync, device_logout_async, device_logout_sync, del_connect_map, add_connect_map
 from uiotedgedriverlinksdk.exception import EdgeDriverLinkDeviceOfflineException, EdgeDriverLinkDeviceConfigException
 from uiotedgedriverlinksdk.nats import _driverInfo, _deviceInfos
 
@@ -33,29 +33,34 @@ class ThingAccessClient(object):
     def get_device_info(self):
         return {
             "productSN": self.product_sn,
-            "deviceSN": self.device_sn,
-            "state": "online"
+            "deviceSN": self.device_sn
         }
 
-    def logout(self):
+    def logout(self, sync=False, timeout=5):
         if self.online:
-            device_logout(product_sn=self.product_sn,
-                          device_sn=self.device_sn,
-                          is_cached=True, duration=30)
-
+            if sync:
+                device_logout_sync(product_sn=self.product_sn,
+                                   device_sn=self.device_sn,
+                                   timeout=timeout)
+            else:
+                device_logout_async(product_sn=self.product_sn,
+                                    device_sn=self.device_sn)
             self.online = False
             del_connect_map(self._identity)
 
-    def login(self):
+    def login(self, sync=False, timeout=5):
         if self._identity == '':
             raise EdgeDriverLinkDeviceConfigException
 
         add_connect_map(self._identity, self)
-        self.online = True
 
-        device_login(product_sn=self.product_sn,
-                     device_sn=self.device_sn,
-                     is_cached=True, duration=30)
+        if sync:
+            device_login_sync(product_sn=self.product_sn,
+                              device_sn=self.device_sn, timeout=timeout)
+        else:
+            device_login_async(product_sn=self.product_sn,
+                               device_sn=self.device_sn)
+        self.online = True
 
     def publish(self, topic: str, payload: b'', is_cached=False, duration=0):
         if self.online:

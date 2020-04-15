@@ -207,7 +207,7 @@ def register_device(product_sn, device_sn, product_secret, timeout=5):
         raise EdgeDriverLinkOfflineException
 
 
-def device_login(product_sn, device_sn, is_cached=False, duration=0):
+def device_login_async(product_sn, device_sn):
     request_id = _generate_request_id()
     topic = '/$system/%s/%s/subdev/login' % (
         product_sn, device_sn)
@@ -223,10 +223,10 @@ def device_login(product_sn, device_sn, is_cached=False, duration=0):
     }
     data = json.dumps(device_login_msg)
     _publish(topic=topic, payload=data.encode('utf-8'),
-             is_cached=is_cached, duration=duration)
+             is_cached=False, duration=0)
 
 
-def device_logout(product_sn, device_sn, is_cached=False, duration=0):
+def device_logout_async(product_sn, device_sn):
     request_id = _generate_request_id()
     topic = '/$system/%s/%s/subdev/logout' % (
         product_sn, device_sn)
@@ -242,7 +242,77 @@ def device_logout(product_sn, device_sn, is_cached=False, duration=0):
     }
     data = json.dumps(device_logout_msg)
     _publish(topic=topic, payload=data.encode('utf-8'),
-             is_cached=is_cached, duration=duration)
+             is_cached=False, duration=0)
+
+
+def device_login_sync(product_sn, device_sn, timeout=5):
+    request_id = _generate_request_id()
+    topic = '/$system/%s/%s/subdev/login' % (
+        product_sn, device_sn)
+
+    device_login_msg = {
+        'RequestID': request_id,
+        "Params": [
+            {
+                'ProductSN': product_sn,
+                'DeviceSN': device_sn
+            }
+        ]
+    }
+
+    try:
+        data = json.dumps(device_login_msg)
+        _publish(topic=topic, payload=data.encode('utf-8'),
+                 is_cached=False, duration=0)
+        q = queue.Queue()
+        _action_queue_map[request_id] = q
+
+        msg = q.get(timeout=timeout)
+        _action_queue_map.pop(request_id)
+        if msg['RetCode'] != 0:
+            raise EdgeDriverLinkException(msg['RetCode'], msg['Message'])
+
+    except queue.Empty:
+        raise EdgeDriverLinkTimeoutException
+    except EdgeDriverLinkException as e:
+        raise e
+    except Exception as e:
+        raise e
+
+
+def device_logout_sync(product_sn, device_sn, timeout=5):
+    request_id = _generate_request_id()
+    topic = '/$system/%s/%s/subdev/logout' % (
+        product_sn, device_sn)
+
+    device_logout_msg = {
+        'RequestID': request_id,
+        "Params": [
+            {
+                'ProductSN': product_sn,
+                'DeviceSN': device_sn
+            }
+        ]
+    }
+
+    try:
+        data = json.dumps(device_logout_msg)
+        _publish(topic=topic, payload=data.encode('utf-8'),
+                 is_cached=False, duration=0)
+        q = queue.Queue()
+        _action_queue_map[request_id] = q
+
+        msg = q.get(timeout=timeout)
+        _action_queue_map.pop(request_id)
+        if msg['RetCode'] != 0:
+            raise EdgeDriverLinkException(msg['RetCode'], msg['Message'])
+
+    except queue.Empty:
+        raise EdgeDriverLinkTimeoutException
+    except EdgeDriverLinkException as e:
+        raise e
+    except Exception as e:
+        raise e
 
 
 def send_message(topic: str, payload: b'', is_cached=False, duration=0):
