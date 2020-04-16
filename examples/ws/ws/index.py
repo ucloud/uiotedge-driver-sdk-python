@@ -91,7 +91,7 @@ class WebSocketSever(WebSocketHandler):
                     log.info('send time:{}'.format(
                         datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')))
                     self.client.publish(
-                        topic=data['topic'], payload=byts.encode('utf-8'), is_cached=True, duration=30)
+                        topic=data['topic'], payload=byts.encode('utf-8'))
                     log.info('send time:{}'.format(
                         datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')))
                 elif isinstance(payload, str):
@@ -99,7 +99,7 @@ class WebSocketSever(WebSocketHandler):
                     log.info('send time:{}'.format(
                         datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')))
                     self.client.publish(
-                        topic=data['topic'], payload=byts, is_cached=True, duration=30)
+                        topic=data['topic'], payload=byts)
 
             else:
                 print('unknown message')
