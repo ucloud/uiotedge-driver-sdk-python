@@ -14,10 +14,11 @@ _logger = logging.getLogger(__name__)
 _action_queue_map = {}
 _connect_map = {}
 
-_cache = TTLCache(maxsize=10, ttl=45)
+_cache = TTLCache(maxsize=10, ttl=30)
 
 
 def get_edge_online_status():
+    global _cache
     is_online = _cache.get('edge_status')
     if is_online:
         return True
@@ -25,10 +26,12 @@ def get_edge_online_status():
 
 
 def add_connect_map(key: str, value):
+    global _connect_map
     _connect_map[key] = value
 
 
 def del_connect_map(key: str):
+    global _connect_map
     _connect_map.pop(key)
 
 
@@ -61,6 +64,7 @@ def set_on_status_change_callback(callback):
 
 
 def get_topo(timeout=5):
+    global _action_queue_map
     request_id = _generate_request_id()
     topic = '/$system/%s/%s/subdev/topo/get' % (
         _generate_request_id(), "123456")
@@ -93,6 +97,7 @@ def get_topo(timeout=5):
 
 
 def add_topo(product_sn, device_sn, timeout=5):
+    global _action_queue_map
     if get_edge_online_status():
         request_id = _generate_request_id()
         topic = '/$system/%s/%s/subdev/topo/add' % (
@@ -131,6 +136,7 @@ def add_topo(product_sn, device_sn, timeout=5):
 
 
 def delete_topo(product_sn, device_sn, timeout=5):
+    global _action_queue_map
     if get_edge_online_status():
         request_id = _generate_request_id()
         topic = '/$system/%s/%s/subdev/topo/delete' % (
@@ -170,6 +176,7 @@ def delete_topo(product_sn, device_sn, timeout=5):
 
 
 def register_device(product_sn, device_sn, product_secret, timeout=5):
+    global _action_queue_map
     if get_edge_online_status():
         request_id = _generate_request_id()
         register_data = {
@@ -246,6 +253,7 @@ def device_logout_async(product_sn, device_sn):
 
 
 def device_login_sync(product_sn, device_sn, timeout=5):
+    global _action_queue_map
     request_id = _generate_request_id()
     topic = '/$system/%s/%s/subdev/login' % (
         product_sn, device_sn)
@@ -281,6 +289,7 @@ def device_login_sync(product_sn, device_sn, timeout=5):
 
 
 def device_logout_sync(product_sn, device_sn, timeout=5):
+    global _action_queue_map
     request_id = _generate_request_id()
     topic = '/$system/%s/%s/subdev/logout' % (
         product_sn, device_sn)
@@ -321,6 +330,9 @@ def send_message(topic: str, payload: b'', is_cached=False, duration=0):
 
 
 def _on_broadcast_message(message):
+    global _on_topo_change_callback
+    global _on_status_change_callback
+    global _action_queue_map
     _logger.debug("broadcast message:{} " .format(str(message)))
     try:
         js = json.loads(message)
@@ -367,6 +379,7 @@ def _on_broadcast_message(message):
 
 
 def _on_message(message):
+    global _connect_map
     _logger.debug("normal message: {}".format(str(message)))
     try:
         js = json.loads(message)
@@ -405,6 +418,7 @@ def _publish(topic: str, payload: b'', is_cached=False, duration=0):
 
 
 def _set_edge_status():
+    global _cache
     _cache['edge_status'] = True
 
 
@@ -434,7 +448,7 @@ def _get_device_list():
 
 def fetch_online_status():
     min_retry_timeout = 1
-    max_retry_timeout = 30
+    max_retry_timeout = 15
     retry_timeout = min_retry_timeout
     while True:
         device_list = _get_device_list()

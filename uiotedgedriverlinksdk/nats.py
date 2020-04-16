@@ -56,6 +56,7 @@ class natsClientPub(object):
         self.loop = asyncio.new_event_loop()
 
     async def _publish(self):
+        global _nat_publish_queue
         try:
             await self.nc.connect(servers=[self.url], loop=self.loop)
         except Exception as e1:
@@ -94,6 +95,7 @@ class natsClientSub(object):
             sys.exit(1)
 
         async def message_handler(msg):
+            global _nat_subscribe_queue
             # subject = msg.subject
             # reply = msg.reply
             # data = msg.data.decode()
@@ -111,6 +113,7 @@ class natsClientSub(object):
 
 
 def publish_nats_msg(msg):
+    global _nat_publish_queue
     data = {
         'subject': 'edge.router.'+_driver_id,
         'payload': msg
