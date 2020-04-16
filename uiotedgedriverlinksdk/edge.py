@@ -440,7 +440,7 @@ def init_subscribe_handler():
 def _get_device_list():
     global _connect_map
     result = []
-    for k, v in _connect_map.items():
+    for v in _connect_map.values():
         result.append(v.get_device_info())
 
     return result
