@@ -112,7 +112,8 @@ class WebSocketSever(WebSocketHandler):
 
     def on_close(self):
         self.client.logout()
-        log.info("websocket closed from:{}".format(self.client_id))
+        log.info("websocket closed from:{}, with reason: {}".format(
+            self.client_id, self.close_reason))
 
 
 class Application(tornado.web.Application):
