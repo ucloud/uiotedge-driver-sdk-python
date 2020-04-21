@@ -1,6 +1,6 @@
 import json
-from uiotedgedriverlinksdk.edge import send_message, device_login_async, device_login_sync, device_logout_async, device_logout_sync, del_connect_map, add_connect_map
-from uiotedgedriverlinksdk.exception import EdgeDriverLinkDeviceOfflineException, EdgeDriverLinkDeviceConfigException
+from uiotedgedriverlinksdk.edge import send_message, device_login_async, device_login_sync, device_logout_async, device_logout_sync, del_connect_map, add_connect_map, register_device
+from uiotedgedriverlinksdk.exception import EdgeDriverLinkDeviceOfflineException, EdgeDriverLinkDeviceConfigException, EdgeDriverLinkDeviceProductSecretException
 from uiotedgedriverlinksdk.nats import _driverInfo, _deviceInfos
 
 
@@ -35,6 +35,13 @@ class ThingAccessClient(object):
             "productSN": self.product_sn,
             "deviceSN": self.device_sn
         }
+
+    def registerDevice(self, timeout=5):
+        if self.product_sn == '' or self.device_sn == '' or self.product_secret == '':
+            raise EdgeDriverLinkDeviceProductSecretException
+
+        register_device(self.product_sn, self.device_sn,
+                        self.product_secret, timeout=timeout)
 
     def logout(self, sync=False, timeout=5):
         if self.online:

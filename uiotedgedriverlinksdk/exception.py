@@ -32,3 +32,8 @@ class EdgeDriverLinkDeviceOfflineException(BaseEdgeException):
 class EdgeDriverLinkOfflineException(BaseEdgeException):
     def __str__(self):
         return "[{}:{}]".format(self.__class__.__name__, 'edge offline, please connect first.')
+
+
+class EdgeDriverLinkDeviceProductSecretException(BaseEdgeException):
+    def __str__(self):
+        return "[{}:{}]".format(self.__class__.__name__, 'product secret param error, please make sure product secret not null.')
