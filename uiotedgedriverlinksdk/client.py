@@ -4,7 +4,7 @@ from uiotedgedriverlinksdk.exception import EdgeDriverLinkDeviceOfflineException
 from uiotedgedriverlinksdk.nats import _driverInfo, _deviceInfos
 
 
-class ThingAccessClient(object):
+class SubDevice(object):
     def __init__(self, product_sn: str = '', device_sn: str = '', on_msg_callback=None):
         self.device_sn = device_sn
         self.product_sn = product_sn

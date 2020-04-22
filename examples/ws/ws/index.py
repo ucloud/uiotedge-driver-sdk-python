@@ -1,5 +1,5 @@
 from uiotedgedriverlinksdk.exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkDeviceOfflineException, EdgeDriverLinkOfflineException, BaseEdgeException
-from uiotedgedriverlinksdk.client import ThingAccessClient, Config, getConfig
+from uiotedgedriverlinksdk.client import SubDevice, Config, getConfig
 from uiotedgedriverlinksdk.edge import set_on_topo_change_callback, add_topo, delete_topo, get_topo, set_on_status_change_callback, register_device
 import tornado.web
 import tornado.ioloop
@@ -29,7 +29,7 @@ class WebSocketSever(WebSocketHandler):
         self.client_id = ''
         self.product_sn = ''
         self.device_sn = ''
-        self.client = ThingAccessClient()
+        self.client = SubDevice()
 
     def on_message_callback(self, topic, msg):
         self.write_message(str(msg))
