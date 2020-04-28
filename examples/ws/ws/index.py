@@ -11,7 +11,7 @@ import signal
 import sys
 import logging
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
 

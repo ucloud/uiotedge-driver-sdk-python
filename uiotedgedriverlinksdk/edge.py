@@ -8,9 +8,9 @@ import time
 from cachetools import TTLCache
 from uiotedgedriverlinksdk.exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
 from uiotedgedriverlinksdk.nats import _nat_subscribe_queue, publish_nats_msg, _driver_id, _nat_publish_queue
-import logging
+from uiotedgedriverlinksdk import getLogger
 
-_logger = logging.getLogger(__name__)
+_logger = getLogger()
 _action_queue_map = {}
 _connect_map = {}
 

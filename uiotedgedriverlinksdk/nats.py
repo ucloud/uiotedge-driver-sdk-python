@@ -10,9 +10,9 @@ import os
 from nats.aio.client import Client as NATS
 from nats.aio.errors import NatsError
 import signal
-import logging
+from uiotedgedriverlinksdk import getLogger
 
-_logger = logging.getLogger(__name__)
+_logger = getLogger()
 
 
 def exit_handler(signum, frame):
