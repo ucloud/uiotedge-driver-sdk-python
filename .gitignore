@@ -2,3 +2,4 @@ build
 dist
 MANIFEST
 uiotedge_driver_link_sdk.egg-info
+.pypirc
