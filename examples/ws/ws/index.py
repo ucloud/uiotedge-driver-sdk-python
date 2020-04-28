@@ -9,9 +9,9 @@ import datetime
 import json
 import signal
 import sys
-import logging
+from uiotedgedriverlinksdk import getLogger
 
-log = logging.getLogger()
+log = getLogger()
 log.setLevel(logging.DEBUG)
 
 
