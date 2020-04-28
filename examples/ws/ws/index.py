@@ -11,7 +11,7 @@ import signal
 import sys
 import logging
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
 
@@ -133,7 +133,7 @@ def main():
     setting = dict(xsrf_cookies=False)
     app = Application(handlers, setting)
     app.listen(port=4567)
-    print("websocket start listen on:{}".format('4567'))
+    print("websocket start listen port on:{}".format('4567'))
     lo.start()
 
 
