@@ -19,7 +19,7 @@ class _Logger(object):
 
 
 _driverLogPath = './var/log/uiotedge'
-_driverLogName = './var/log/uiotedge/driver.log'
+_driverLogName = './var/log/uiotedge/uiotedge.log'
 if not os.path.exists(_driverLogPath):
     os.makedirs(_driverLogPath)
 if not os.path.isfile(_driverLogName):
