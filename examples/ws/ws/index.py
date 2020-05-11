@@ -9,10 +9,10 @@ import datetime
 import json
 import signal
 import sys
-from uiotedgedriverlinksdk import getLogger
+from uiotedgedriverlinksdk.logger import getLogger
 
 log = getLogger()
-log.setLevel(logging.DEBUG)
+# log.setLevel(logging.DEBUG)
 
 
 class WebSocketSever(WebSocketHandler):

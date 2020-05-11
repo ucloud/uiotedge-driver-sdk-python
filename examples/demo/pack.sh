@@ -6,7 +6,7 @@ fi
 mkdir tmp
 cp index.py tmp/
 cd tmp
-pip3 install -t . uiotedge_driver_link_sdk==0.0.37 #打包驱动SDK
+pip3 install -t . uiotedge_driver_link_sdk==0.0.38.3 #打包驱动SDK
 zip -r demo.zip .
 cd ..
 cp tmp/demo.zip .

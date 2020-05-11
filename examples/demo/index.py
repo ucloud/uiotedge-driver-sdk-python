@@ -5,6 +5,7 @@ import logging
 import time
 import json
 
+logging.getLogger().setLevel(logging.DEBUG)
 # 配置log
 log = getLogger()
 

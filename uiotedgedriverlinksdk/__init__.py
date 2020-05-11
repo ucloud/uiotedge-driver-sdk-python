@@ -13,7 +13,7 @@ with open(_config_path, 'r') as load_f:
     try:
         load_dict = json.load(load_f)
         _logger.info(str(load_dict))
-        print('----config: {} -------'.format(load_dict))
+        # print('----config: {} -------'.format(load_dict))
 
         _driver_id = load_dict['driverID']
 

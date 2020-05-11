@@ -334,7 +334,7 @@ def _on_broadcast_message(message):
     global _on_topo_change_callback
     global _on_status_change_callback
     global _action_queue_map
-    _logger.debug("broadcast message:{} " .format(str(message)))
+    _logger.debug("recv message:{} " .format(str(message)))
     try:
         js = json.loads(message)
         topic = js['topic']
@@ -381,7 +381,7 @@ def _on_broadcast_message(message):
 
 def _on_message(message):
     global _connect_map
-    _logger.debug("normal message: {}".format(str(message)))
+    _logger.debug("recv message: {}".format(str(message)))
     try:
         js = json.loads(message)
         identify = js['productSN'] + \
@@ -389,7 +389,7 @@ def _on_message(message):
 
         topic = js['topic']
         msg = base64.b64decode(js['payload'])
-        _logger.debug("normal message payload: {}".format(str(msg, 'utf-8')))
+        # _logger.debug("normal message payload: {}".format(str(msg, 'utf-8')))
         if identify in _connect_map:
             sub_dev = _connect_map[identify]
             if sub_dev.callback:
