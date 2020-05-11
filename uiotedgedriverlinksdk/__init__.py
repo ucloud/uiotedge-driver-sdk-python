@@ -1,34 +1,29 @@
-import logging
-import os
-from logging import handlers
+import json
+import logging as _logger
+import sys
 
+_driver_id = ''
+_deviceInfos = []
+_driverInfo = None
+_driver_name = ''
 
-class _Logger(object):
-    def __init__(self,  filename='', level=logging.INFO, when='D', backCount=3):
-        self.logger = logging.getLogger(filename)
-        format_str = logging.Formatter(
-            '%(asctime)s - %(levelname)s: %(message)s')  # 设置日志格式
-        self.logger.setLevel(level)  # 设置日志级别
-        sh = logging.StreamHandler()  # 往屏幕上输出
-        sh.setFormatter(format_str)  # 设置屏幕上显示的格式
-        th = handlers.TimedRotatingFileHandler(
-            filename=filename, when=when, backupCount=backCount, encoding='utf-8')  # 往文件里写入#指定间隔时间自动生成文件的处理器
-        th.setFormatter(format_str)  # 设置文件里写入的格式
-        self.logger.addHandler(sh)  # 把对象加到logger里
-        self.logger.addHandler(th)
+# get Config
+_config_path = './etc/uiotedge/config.json'
+with open(_config_path, 'r') as load_f:
+    try:
+        load_dict = json.load(load_f)
+        _logger.info(str(load_dict))
+        print('----config: {} -------'.format(load_dict))
 
+        _driver_id = load_dict['driverID']
 
-_driverLogPath = './var/log/uiotedge'
-_driverLogName = './var/log/uiotedge/uiotedge.log'
-if not os.path.exists(_driverLogPath):
-    os.makedirs(_driverLogPath)
-if not os.path.isfile(_driverLogName):
-    fd = open(_driverLogName, mode='w', encoding='utf-8')
-    fd.close()
+        if 'deviceList' in load_dict.keys():
+            _deviceInfos = load_dict['deviceList']
 
-_uiotedge_logger = _Logger(_driverLogName, level=logging.INFO)
+        if 'driverInfo' in load_dict.keys():
+            _driverInfo = load_dict['driverInfo']
+    except Exception as e:
+        _logger.error('load config file error:{}'.format(e))
+        sys.exit(1)
 
-
-def getLogger():
-    global _uiotedge_logger
-    return _uiotedge_logger.logger
+_logger.info("dirver_id: {}".format(_driver_id))

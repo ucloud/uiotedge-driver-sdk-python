@@ -7,8 +7,9 @@ import threading
 import time
 from cachetools import TTLCache
 from uiotedgedriverlinksdk.exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-from uiotedgedriverlinksdk.nats import _nat_subscribe_queue, publish_nats_msg, _driver_id, _nat_publish_queue
-from uiotedgedriverlinksdk import getLogger
+from uiotedgedriverlinksdk.nats import _nat_subscribe_queue, publish_nats_msg, _nat_publish_queue
+from uiotedgedriverlinksdk import _driver_id
+from uiotedgedriverlinksdk.logger import getLogger
 
 _logger = getLogger()
 _action_queue_map = {}
@@ -429,12 +430,12 @@ def init_subscribe_handler():
         subject = msg.subject
         data = msg.data.decode()
 
-        if subject == "edge.local."+_driver_id:
-            _on_message(data)
-        elif subject == "edge.local.broadcast":
+        if subject == "edge.local.broadcast":
             _on_broadcast_message(data)
         elif subject == "edge.state.reply":
             _set_edge_status()
+        else:
+            _on_message(data)
 
 
 def _get_device_list():
