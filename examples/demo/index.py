@@ -6,7 +6,6 @@ from uiotedgedriverlinksdk import getLogger
 from uiotedgedriverlinksdk.client import Config, SubDevice
 from uiotedgedriverlinksdk.exception import BaseEdgeException
 
-logging.getLogger().setLevel(logging.DEBUG)
 # 配置log
 log = getLogger()
 log.setLevel(logging.DEBUG)
