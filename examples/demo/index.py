@@ -1,13 +1,15 @@
-from uiotedgedriverlinksdk.client import SubDevice, Config
-from uiotedgedriverlinksdk.exception import BaseEdgeException
-from uiotedgedriverlinksdk.logger import getLogger
+import json
 import logging
 import time
-import json
+
+from uiotedgedriverlinksdk import getLogger
+from uiotedgedriverlinksdk.client import Config, SubDevice
+from uiotedgedriverlinksdk.exception import BaseEdgeException
 
 logging.getLogger().setLevel(logging.DEBUG)
 # 配置log
 log = getLogger()
+log.setLevel(logging.DEBUG)
 
 # 主函数
 if __name__ == "__main__":
