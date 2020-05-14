@@ -26,7 +26,11 @@ with open(_config_path, 'r') as load_f:
         # print('----config: {} -------'.format(load_dict))
 
         _driver_id = load_dict['driverID']
-        _driver_name = load_dict['driverName']
+
+        if 'driverName' in load_dict.keys():
+            _driver_name = load_dict['driverName']
+        else:
+            _driver_name = _driver_id
 
         if 'deviceList' in load_dict.keys():
             _deviceInfos = load_dict['deviceList']

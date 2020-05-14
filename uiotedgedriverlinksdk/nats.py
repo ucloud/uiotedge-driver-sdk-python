@@ -1,17 +1,17 @@
 import asyncio
 import json
-import sys
-import queue
-import time
-import threading
-import random
-import string
 import os
+import queue
+import random
+import signal
+import string
+import sys
+import threading
+import time
+
 from nats.aio.client import Client as NATS
 from nats.aio.errors import NatsError
-import signal
-from uiotedgedriverlinksdk.logger import getLogger
-from uiotedgedriverlinksdk import _driver_id
+from uiotedgedriverlinksdk import _driver_id, getLogger
 
 _logger = getLogger()
 

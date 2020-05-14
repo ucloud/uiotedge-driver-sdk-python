@@ -1,15 +1,19 @@
+import base64
 import json
+import queue
 import random
 import string
-import queue
-import base64
 import threading
 import time
+
 from cachetools import TTLCache
-from uiotedgedriverlinksdk.exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-from uiotedgedriverlinksdk.nats import _nat_subscribe_queue, publish_nats_msg, _nat_publish_queue
-from uiotedgedriverlinksdk import _driver_id
-from uiotedgedriverlinksdk.logger import getLogger
+
+from uiotedgedriverlinksdk import _driver_id, getLogger
+from uiotedgedriverlinksdk.exception import (EdgeDriverLinkException,
+                                             EdgeDriverLinkOfflineException,
+                                             EdgeDriverLinkTimeoutException)
+from uiotedgedriverlinksdk.nats import (_nat_publish_queue,
+                                        _nat_subscribe_queue, publish_nats_msg)
 
 _logger = getLogger()
 _action_queue_map = {}

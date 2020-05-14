@@ -7,7 +7,7 @@ if not (sys.version_info[0] == 3):
 
 setup(
     name='uiotedge_driver_link_sdk',
-    version='0.0.38.5',
+    version='0.0.38.7',
     author='ucloud.cn',
     url='https://pypi.org/project/uiotedge_driver_link_sdk/',
     author_email='joy.zhou@ucloud.cn',

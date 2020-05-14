@@ -1,7 +1,14 @@
 import json
-from uiotedgedriverlinksdk.edge import send_message, device_login_async, device_login_sync, device_logout_async, device_logout_sync, del_connect_map, add_connect_map, register_device
-from uiotedgedriverlinksdk.exception import EdgeDriverLinkDeviceOfflineException, EdgeDriverLinkDeviceConfigException, EdgeDriverLinkDeviceProductSecretException
-from uiotedgedriverlinksdk import _driverInfo, _deviceInfos
+
+from uiotedgedriverlinksdk import _deviceInfos, _driverInfo
+from uiotedgedriverlinksdk.edge import (add_connect_map, del_connect_map,
+                                        device_login_async, device_login_sync,
+                                        device_logout_async,
+                                        device_logout_sync, register_device,
+                                        send_message)
+from uiotedgedriverlinksdk.exception import (
+    EdgeDriverLinkDeviceConfigException, EdgeDriverLinkDeviceOfflineException,
+    EdgeDriverLinkDeviceProductSecretException)
 
 
 class SubDevice(object):
