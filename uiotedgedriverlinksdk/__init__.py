@@ -15,14 +15,13 @@ _driver_name = ''
 _deviceInfos = []
 _driverInfo = None
 _driver_name = ''
-_logger = logging.getLogger()
 
 # get Config
 _config_path = './etc/uiotedge/config.json'
 with open(_config_path, 'r') as load_f:
     try:
         load_dict = json.load(load_f)
-        _logger.info(str(load_dict))
+        print(str(load_dict))
         # print('----config: {} -------'.format(load_dict))
 
         _driver_id = load_dict['driverID']
@@ -38,10 +37,10 @@ with open(_config_path, 'r') as load_f:
         if 'driverInfo' in load_dict.keys():
             _driverInfo = load_dict['driverInfo']
     except Exception as e:
-        _logger.error('load config file error:{}'.format(e))
+        print('load config file error:{}'.format(e))
         sys.exit(1)
 
-_logger.info("driver_id: {}, driver name:{}".format(_driver_id, _driver_name))
+print("driver_id: {}, driver name:{}".format(_driver_id, _driver_name))
 
 
 class _Logger(object):
