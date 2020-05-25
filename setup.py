@@ -1,12 +1,13 @@
-from setuptools import setup
 import sys
+
+from setuptools import setup
 
 if not (sys.version_info[0] == 3):
     sys.exit("Link IoT Edge only support Python 3")
 
 setup(
     name='uiotedge_driver_link_sdk',
-    version='0.0.32',
+    version='0.0.40',
     author='ucloud.cn',
     url='https://pypi.org/project/uiotedge_driver_link_sdk/',
     author_email='joy.zhou@ucloud.cn',

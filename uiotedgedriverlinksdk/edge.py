@@ -1,14 +1,19 @@
+import base64
 import json
+import queue
 import random
 import string
-import queue
-import base64
 import threading
 import time
+
 from cachetools import TTLCache
-from uiotedgedriverlinksdk.exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkOfflineException
-from uiotedgedriverlinksdk.nats import _nat_subscribe_queue, publish_nats_msg, _driver_id, _nat_publish_queue
-from uiotedgedriverlinksdk import getLogger
+
+from uiotedgedriverlinksdk import _driver_id, getLogger
+from uiotedgedriverlinksdk.exception import (EdgeDriverLinkException,
+                                             EdgeDriverLinkOfflineException,
+                                             EdgeDriverLinkTimeoutException)
+from uiotedgedriverlinksdk.nats import (_nat_publish_queue,
+                                        _nat_subscribe_queue, publish_nats_msg)
 
 _logger = getLogger()
 _action_queue_map = {}
@@ -333,7 +338,7 @@ def _on_broadcast_message(message):
     global _on_topo_change_callback
     global _on_status_change_callback
     global _action_queue_map
-    _logger.debug("broadcast message:{} " .format(str(message)))
+    _logger.debug("recv message:{} " .format(str(message)))
     try:
         js = json.loads(message)
         topic = js['topic']
@@ -380,7 +385,7 @@ def _on_broadcast_message(message):
 
 def _on_message(message):
     global _connect_map
-    _logger.debug("normal message: {}".format(str(message)))
+    _logger.debug("recv message: {}".format(str(message)))
     try:
         js = json.loads(message)
         identify = js['productSN'] + \
@@ -388,7 +393,7 @@ def _on_message(message):
 
         topic = js['topic']
         msg = base64.b64decode(js['payload'])
-        _logger.debug("normal message payload: {}".format(str(msg, 'utf-8')))
+        # _logger.debug("normal message payload: {}".format(str(msg, 'utf-8')))
         if identify in _connect_map:
             sub_dev = _connect_map[identify]
             if sub_dev.callback:
@@ -429,12 +434,12 @@ def init_subscribe_handler():
         subject = msg.subject
         data = msg.data.decode()
 
-        if subject == "edge.local."+_driver_id:
-            _on_message(data)
-        elif subject == "edge.local.broadcast":
+        if subject == "edge.local.broadcast":
             _on_broadcast_message(data)
         elif subject == "edge.state.reply":
             _set_edge_status()
+        else:
+            _on_message(data)
 
 
 def _get_device_list():
