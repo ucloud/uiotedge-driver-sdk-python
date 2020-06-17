@@ -183,7 +183,7 @@ DeviceInfo包括如下信息：
 ### set_on_topo_change_callback(callback)
 云端topo信息变化的下发消息的回调函数
 
-* callback`func`: 云端下发消息回调，消息类型 []byte, 例如： `def callbacl(msg:b''): print(str(msg,'utf-8')`
+* callback`func`: 云端下发消息回调，消息类型 {}, 例如： `def callback(msg): print(msg)`
 
 
 ---
@@ -191,7 +191,7 @@ DeviceInfo包括如下信息：
 ### set_on_status_change_callback(callback)
 云端设备启用和禁用信息变化的下发消息的回调函数
 
-* callback`func`: 云端下发消息回调，消息类型 []byte, 例如： `def callbacl(msg:b''): print(str(msg,'utf-8')`
+* callback`func`: 云端下发消息回调，消息类型 {}, 例如： `def callback(msg): print(msg)`
 
 
 ---
