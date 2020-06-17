@@ -1,18 +1,27 @@
-from uiotedgedriverlinksdk.exception import EdgeDriverLinkException, EdgeDriverLinkTimeoutException, EdgeDriverLinkDeviceOfflineException, EdgeDriverLinkOfflineException, BaseEdgeException
-from uiotedgedriverlinksdk.client import SubDevice, Config, getConfig
-from uiotedgedriverlinksdk.edge import set_on_topo_change_callback, add_topo, delete_topo, get_topo, set_on_status_change_callback, register_device
-import tornado.web
-import tornado.ioloop
-import tornado.httpserver
-from tornado.websocket import WebSocketHandler
 import datetime
 import json
+import logging
 import signal
 import sys
-from uiotedgedriverlinksdk.logger import getLogger
+
+import tornado.httpserver
+import tornado.ioloop
+import tornado.web
+from tornado.websocket import WebSocketHandler
+
+from uiotedgedriverlinksdk import getLogger
+from uiotedgedriverlinksdk.client import Config, SubDevice, getConfig
+from uiotedgedriverlinksdk.edge import (add_topo, delete_topo, get_topo,
+                                        register_device,
+                                        set_on_status_change_callback,
+                                        set_on_topo_change_callback)
+from uiotedgedriverlinksdk.exception import (
+    BaseEdgeException, EdgeDriverLinkDeviceOfflineException,
+    EdgeDriverLinkException, EdgeDriverLinkOfflineException,
+    EdgeDriverLinkTimeoutException)
 
 log = getLogger()
-# log.setLevel(logging.DEBUG)
+log.setLevel(logging.DEBUG)
 
 
 class WebSocketSever(WebSocketHandler):
