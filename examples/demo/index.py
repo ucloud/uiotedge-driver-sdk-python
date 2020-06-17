@@ -1,9 +1,10 @@
-from uiotedgedriverlinksdk.client import SubDevice, Config
-from uiotedgedriverlinksdk.exception import BaseEdgeException
-from uiotedgedriverlinksdk import getLogger
+import json
 import logging
 import time
-import json
+
+from uiotedgedriverlinksdk import getLogger
+from uiotedgedriverlinksdk.client import Config, SubDevice
+from uiotedgedriverlinksdk.exception import BaseEdgeException
 
 # 配置log
 log = getLogger()
@@ -31,7 +32,7 @@ if __name__ == "__main__":
         # 判断是否绑定子设备
         if len(deviceInfoList) < 1:
             log.error(
-                'subdevice null, please bind sub device for dirver')
+                'subdevice null, please bind sub device for driver')
             while True:
                 time.sleep(60)
 
