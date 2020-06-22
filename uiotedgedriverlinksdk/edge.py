@@ -352,22 +352,22 @@ def _on_broadcast_message(message):
             # on topo change callback
             if topic.endswith("/subdev/topo/notify/add"):
                 if _on_topo_change_callback:
-                    msg['operaction'] = 'add'
+                    msg['operation'] = 'add'
                     _on_topo_change_callback.run(msg)
 
             elif topic.endswith("/subdev/topo/notify/delete"):
                 if _on_topo_change_callback:
-                    msg['operaction'] = 'delete'
+                    msg['operation'] = 'delete'
                     _on_topo_change_callback.run(msg)
 
             elif topic.endswith('/subdev/enable'):
                 if _on_status_change_callback:
-                    msg['operaction'] = 'enable'
+                    msg['operation'] = 'enable'
                     _on_status_change_callback.run(msg)
 
             elif topic.endswith('/subdev/disable'):
                 if _on_status_change_callback:
-                    msg['operaction'] = 'disable'
+                    msg['operation'] = 'disable'
                     _on_status_change_callback.run(msg)
 
             else:
